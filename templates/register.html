@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main>
+    <div class="form-container">
+        <h2>Jetzt registrieren</h2>
+        
+        <!-- Dieser Block zeigt Fehlermeldungen an, z.B. "Benutzername existiert bereits" -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash">{{ messages[0] }}</div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('register') }}">
+            
+            <label for="username">Benutzername</label>
+            <input type="text" id="username" name="username" required>
+            
+            <label for="email">E-Mail-Adresse</label>
+            <input type="email" id="email" name="email" required>
+
+            <label for="password">Passwort</label>
+            <input type="password" id="password" name="password" required>
+            
+            <button type="submit" class="button">Registrieren</button>
+        </form>
+    </div>
+</main>
+{% endblock %}

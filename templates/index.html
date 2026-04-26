@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main>
+    <div class="content-container">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="recipe-grid">
+            {% for recipe in recipes %}
+                <div class="recipe-card">
+                    <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" alt="{{ recipe.title }}">
+                    <div class="card-content">
+                        <h3>{{ recipe.title }}</h3>
+
+                        <!-- STERNE-ANZEIGE -->
+                        <div class="star-rating-card">
+                            <div class="stars-outer">
+                                <div class="stars-inner" style="width: {{ (recipe.average_rating / 5 * 100) }}%;"></div>
+                            </div>
+                            <span class="rating-text">({{ recipe.rating_count }})</span>
+                        </div>
+                        
+                        <div class="category-tags-card">
+                            {% for cat in recipe.categories %}
+                                <span class="tag-sm">{{ cat.name }}</span>
+                            {% endfor %}
+                        </div>
+
+                        <p>Erstellt von: {{ recipe.author.username }}</p>
+                        
+                        <div class="card-actions">
+                            <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="button">Rezept ansehen</a>
+                            {% if current_user.is_authenticated and current_user == recipe.author %}
+                                <a href="{{ url_for('edit_recipe', recipe_id=recipe.id) }}" class="button edit-button">Bearbeiten</a>
+                            {% endif %}
+                            {% if current_user.is_authenticated and current_user.username in config.ADMIN_USERNAMES %}
+                                <form action="{{ url_for('delete_recipe', recipe_id=recipe.id) }}" method="POST"
+                                      onsubmit="return confirm('Bist du sicher, dass du dieses Rezept endgültig löschen möchtest?');">
+                                    <button type="submit" class="button delete-button">Löschen</button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="no-recipes">
+                    <p>Noch keine Rezepte vorhanden. <a href="{{ url_for('create_recipe') }}">Erstelle das erste Rezept!</a></p>
+                </div>
+            {% endfor %}
+            </div>
+        
+    </div>
+</main>
+{% endblock %}

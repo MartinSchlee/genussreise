@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rezept-App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="{{ url_for('index') }}" class="logo">Rezept-App</a>
+            <ul>
+                <!-- Kategorien Dropdown -->
+                {% if top_level_categories %}
+                <li class="dropdown">
+                    <a href="#" class="dropbtn">Kategorien</a>
+                    <div class="dropdown-content">
+                        {% for top_cat in top_level_categories %}
+                            <div class="dropdown-header">{{ top_cat.name }}</div>
+                            {% for sub_cat in top_cat.children %}
+                                <a href="{{ url_for('recipes_by_category', category_id=sub_cat.id) }}">{{ sub_cat.name }}</a>
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                </li>
+                {% endif %}
+
+                <li><a href="{{ url_for('index') }}">Home</a></li>
+
+                <!-- NEU: Das Suchformular -->
+                <li>
+                    <form action="{{ url_for('search') }}" method="GET" class="search-form">
+                        <input type="search" name="q" placeholder="Rezept suchen..." required>
+                        <button type="submit">Suchen</button>
+                    </form>
+                </li>
+                
+                <!-- Benutzer-spezifische Links -->
+                {% if current_user.is_authenticated %}
+                    <li><a href="{{ url_for('create_recipe') }}">Rezept erstellen</a></li>
+                    <li><a href="{{ url_for('logout') }}">Logout ({{ current_user.username }})</a></li>
+                {% else %}
+                    <li><a href="{{ url_for('login') }}">Login</a></li>
+                    <li><a href="{{ url_for('register') }}">Register</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </header>
+
+    {% block content %}
+    <!-- Der Inhalt der einzelnen Seiten wird hier eingefügt -->
+    {% endblock %}
+
+    <footer>
+        <p>&copy; 2026 Deine Rezept-App</p>
+    </footer>
+</body>
+</html>

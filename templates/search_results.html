@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main>
+    <div class="content-container">
+        
+        <!-- Titel, der die Suchanfrage und die Anzahl der Ergebnisse anzeigt -->
+        <h2 style="text-align: center; margin-bottom: 2rem;">
+            Suchergebnisse für: "{{ query }}" 
+            <span style="font-weight: normal; color: #777;">({{ recipes|length }} Treffer)</span>
+        </h2>
+
+        <div class="recipe-grid">
+            {% for recipe in recipes %}
+                <!-- Wiederverwendung der bekannten Rezept-Karte -->
+                <div class="recipe-card">
+                    <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" alt="{{ recipe.title }}">
+                    <div class="card-content">
+                        <h3>{{ recipe.title }}</h3>
+                        
+                        <div class="category-tags-card">
+                            {% for cat in recipe.categories %}
+                                <span class="tag-sm">{{ cat.name }}</span>
+                            {% endfor %}
+                        </div>
+
+                        <p>Erstellt von: {{ recipe.author.username }}</p>
+                        
+                        <div class="card-actions">
+                            <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="button">Rezept ansehen</a>
+
+                            {% if current_user.is_authenticated and current_user == recipe.author %}
+                                <a href="{{ url_for('edit_recipe', recipe_id=recipe.id) }}" class="button edit-button">Bearbeiten</a>
+                            {% endif %}
+
+                            {% if current_user.is_authenticated and current_user.username in config.ADMIN_USERNAMES %}
+                                <form action="{{ url_for('delete_recipe', recipe_id=recipe.id) }}" method="POST"
+                                      onsubmit="return confirm('Bist du sicher, dass du dieses Rezept endgültig löschen möchtest?');">
+                                    <button type="submit" class="button delete-button">Löschen</button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <!-- Nachricht, wenn keine Rezepte gefunden wurden -->
+                <div style="text-align: center; grid-column: 1 / -1; padding: 2rem;">
+                    <p>Für deine Suche nach "{{ query }}" wurden leider keine Rezepte gefunden.</p>
+                    <p><a href="{{ url_for('index') }}">Zurück zur Startseite</a></p>
+                </div>
+            {% endfor %}
+        </div>
+        
+    </div>
+</main>
+{% endblock %}

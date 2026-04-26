@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main>
+    <div class="form-container">
+        <h2>Rezept bearbeiten</h2>
+        <form method="POST" action="{{ url_for('edit_recipe', recipe_id=recipe.id) }}" enctype="multipart/form-data">
+            
+            <label for="title">Titel des Rezepts</label>
+            <input type="text" id="title" name="title" value="{{ recipe.title }}" required>
+            
+            <label for="image">Neues Rezeptbild (optional)</label>
+            <p>Aktuelles Bild:</p>
+            <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" alt="Aktuelles Bild" style="max-width: 150px; margin-bottom: 1rem; border-radius: 4px;">
+            <input type="file" id="image" name="image" accept="image/png, image/jpeg, image/gif">
+
+            <hr>
+
+            <h3>Zubereitungszeiten</h3>
+            <div class="form-grid">
+                <div>
+                    <label for="time_prep">Vorbereitung</label>
+                    <input type="text" id="time_prep" name="time_prep" placeholder="z.B. 20 Min" value="{{ recipe.time_prep or '' }}">
+                </div>
+                <div>
+                    <label for="time_cook">Garzeit</label>
+                    <input type="text" id="time_cook" name="time_cook" placeholder="z.B. 30 Min" value="{{ recipe.time_cook or '' }}">
+                </div>
+                <div>
+                    <label for="time_rest">Ruhezeit</label>
+                    <input type="text" id="time_rest" name="time_rest" placeholder="z.B. 1 Std" value="{{ recipe.time_rest or '' }}">
+                </div>
+                <div>
+                    <label for="portions">Portionen</label>
+                    <input type="number" id="portions" name="portions" value="{{ recipe.portions }}" required>
+                </div>
+            </div>
+
+            <hr>
+            
+            <label for="ingredients">Zutaten</label>
+            <p class="form-hint">Format: MENGE - ZUTAT (jede Zutat in eine neue Zeile).</p>
+            <textarea id="ingredients" name="ingredients" rows="8" required>{{ recipe.ingredients }}</textarea>
+            
+            <label for="instructions">Anleitung</label>
+            <textarea id="instructions" name="instructions" rows="12" required>{{ recipe.instructions }}</textarea>
+
+            <hr>
+
+            <h3>Kategorien</h3>
+            <div class="category-checkboxes">
+                {% for category in categories %}
+                <div class="checkbox-item">
+                    <input type="checkbox" id="cat-{{ category.id }}" name="categories" value="{{ category.id }}" {% if category in recipe.categories %}checked{% endif %}>
+                    <label for="cat-{{ category.id }}">{{ category.name }}</label>
+                </div>
+                {% endfor %}
+            </div>
+
+            <hr>
+
+            <h3>Nährwertangaben (pro 100g)</h3>
+            <div class="form-grid">
+                <div>
+                    <label for="nutrition_kcal">Kalorien (kcal)</label>
+                    <input type="text" id="nutrition_kcal" name="nutrition_kcal" placeholder="z.B. 219" value="{{ recipe.nutrition_kcal or '' }}">
+                </div>
+                <div>
+                    <label for="nutrition_protein">Eiweiß (g)</label>
+                    <input type="text" id="nutrition_protein" name="nutrition_protein" placeholder="z.B. 6,9" value="{{ recipe.nutrition_protein or '' }}">
+                </div>
+                <div>
+                    <label for="nutrition_carbs">Kohlenhydrate (g)</label>
+                    <input type="text" id="nutrition_carbs" name="nutrition_carbs" placeholder="z.B. 45,2" value="{{ recipe.nutrition_carbs or '' }}">
+                </div>
+                <div>
+                    <label for="nutrition_fat">Fett (g)</label>
+                    <input type="text" id="nutrition_fat" name="nutrition_fat" placeholder="z.B. 0,9" value="{{ recipe.nutrition_fat or '' }}">
+                </div>
+            </div>
+            
+            <button type="submit" class="button">Änderungen speichern</button>
+        </form>
+    </div>
+</main>
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main>
+    <div class="form-container">
+        <h2>Neues Rezept erstellen</h2>
+        <form method="POST" action="{{ url_for('create_recipe') }}" enctype="multipart/form-data">
+
+            <label for="title">Titel des Rezepts</label>
+            <input type="text" id="title" name="title" required>
+            
+            <label for="image">Rezeptbild</label>
+            <input type="file" id="image" name="image" accept="image/png, image/jpeg, image/gif">
+
+            <hr>
+
+            <h3>Zubereitungszeiten</h3>
+            <div class="form-grid">
+                <div>
+                    <label for="time_prep">Vorbereitung</label>
+                    <input type="text" id="time_prep" name="time_prep" placeholder="z.B. 20 Min">
+                </div>
+                <div>
+                    <label for="time_cook">Garzeit</label>
+                    <input type="text" id="time_cook" name="time_cook" placeholder="z.B. 30 Min">
+                </div>
+                <div>
+                    <label for="time_rest">Ruhezeit</label>
+                    <input type="text" id="time_rest" name="time_rest" placeholder="z.B. 1 Std">
+                </div>
+                <div>
+                    <label for="portions">Portionen</label>
+                    <input type="number" id="portions" name="portions" value="4" required>
+                </div>
+            </div>
+
+            <hr>
+            
+            <label for="ingredients">Zutaten</label>
+            <p class="form-hint">Format: MENGE - ZUTAT (jede Zutat in eine neue Zeile).<br>Beispiel:<br>1 kg - Mehl<br>500 ml - Wasser</p>
+            <textarea id="ingredients" name="ingredients" rows="8" required></textarea>
+            
+            <label for="instructions">Anleitung</label>
+            <textarea id="instructions" name="instructions" rows="12" required></textarea>
+
+            <hr>
+
+            <h3>Kategorien</h3>
+            <div class="category-checkboxes">
+                {% for category in categories %}
+                <div class="checkbox-item">
+                    <input type="checkbox" id="cat-{{ category.id }}" name="categories" value="{{ category.id }}">
+                    <label for="cat-{{ category.id }}">{{ category.name }}</label>
+                </div>
+                {% endfor %}
+            </div>
+
+            <hr>
+
+            <h3>Nährwertangaben (pro 100g)</h3>
+            <div class="form-grid">
+                <div>
+                    <label for="nutrition_kcal">Kalorien (kcal)</label>
+                    <input type="text" id="nutrition_kcal" name="nutrition_kcal" placeholder="z.B. 219">
+                </div>
+                <div>
+                    <label for="nutrition_protein">Eiweiß (g)</label>
+                    <input type="text" id="nutrition_protein" name="nutrition_protein" placeholder="z.B. 6,9">
+                </div>
+                <div>
+                    <label for="nutrition_carbs">Kohlenhydrate (g)</label>
+                    <input type="text" id="nutrition_carbs" name="nutrition_carbs" placeholder="z.B. 45,2">
+                </div>
+                <div>
+                    <label for="nutrition_fat">Fett (g)</label>
+                    <input type="text" id="nutrition_fat" name="nutrition_fat" placeholder="z.B. 0,9">
+                </div>
+            </div>
+            
+            <button type="submit" class="button">Rezept erstellen</button>
+        </form>
+    </div>
+</main>
+{% endblock %}
