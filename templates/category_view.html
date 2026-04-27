@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<main>
+    <h2>Rezepte in der Kategorie: {{ category.name }}</h2>
+    <hr>
+    <div class="row">
+        {% if category.recipes %}
+            {% for recipe in category.recipes %}
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}">
+                            <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" class="card-img-top" alt="{{ recipe.name }}">
+                        </a>
+                        <div class="card-body">
+                            <h5 class="card-title">{{ recipe.name }}</h5>
+                            <p class="card-text"><small class="text-muted">Von: {{ recipe.author.username }}</small></p>
+                            <div>
+                                {% for cat in recipe.categories %}
+                                    <a href="{{ url_for('recipes_in_category', category_id=cat.id) }}" class="badge badge-secondary mr-1">{{ cat.name }}</a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent border-top-0">
+                            <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="btn btn-primary btn-sm">Ansehen</a>
+                            <!-- Hier könnten auch wieder die Bearbeiten/Löschen-Buttons hin, falls gewünscht -->
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="col">
+                <p>In dieser Kategorie gibt es noch keine Rezepte.</p>
+            </div>
+        {% endif %}
+    </div>
+</main>
+{% endblock %}

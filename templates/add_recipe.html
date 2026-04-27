@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Neues Rezept hinzufügen</h2>
+    <form method="POST" action="{{ url_for('add_recipe') }}" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="recipe_name">Rezeptname</label>
+            <input type="text" class="form-control" id="recipe_name" name="recipe_name" required>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="servings">Portionen</label>
+                    <input type="text" class="form-control" id="servings" name="servings" placeholder="z.B. 4 Personen">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <!-- VEREINFACHUNG: Dropdown für EINE Kategorie -->
+                <div class="form-group">
+                    <label for="category_id">Kategorie</label>
+                    <select class="form-control" id="category_id" name="category_id" required>
+                        <option value="" disabled selected>Bitte wählen...</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="image_file">Rezeptbild</label>
+            <input type="file" class="form-control-file" id="image_file" name="image_file">
+        </div>
+
+        <!-- Zutaten-Logik bleibt unverändert -->
+        <div id="ingredients-container">
+            <label>Zutaten</label>
+            <div class="ingredient-row form-row mb-2">
+                <div class="col"><input type="text" class="form-control" name="quantity[]" placeholder="Menge"></div>
+                <div class="col"><input type="text" class="form-control" name="unit[]" placeholder="Einheit"></div>
+                <div class="col-6"><input type="text" class="form-control" name="ingredient_name[]" placeholder="Zutat"></div>
+            </div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm mb-3" onclick="addIngredient()">Weitere Zutat</button>
+        
+        <div class="form-group">
+            <label for="instructions">Anleitung</label>
+            <textarea class="form-control" id="instructions" name="instructions" rows="10" required></textarea>
+        </div>
+        
+        <button type="submit" class="btn btn-primary mt-3">Rezept speichern</button>
+    </form>
+</div>
+<script>
+    function addIngredient() {
+        var container = document.getElementById('ingredients-container');
+        var newRow = container.querySelector('.ingredient-row').cloneNode(true);
+        newRow.querySelectorAll('input').forEach(input => input.value = '');
+        container.appendChild(newRow);
+    }
+</script>
+{% endblock %}

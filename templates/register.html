@@ -1,30 +1,25 @@
 {% extends "base.html" %}
 
 {% block content %}
-<main>
-    <div class="form-container">
-        <h2>Jetzt registrieren</h2>
-        
-        <!-- Dieser Block zeigt Fehlermeldungen an, z.B. "Benutzername existiert bereits" -->
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                <div class="flash">{{ messages[0] }}</div>
-            {% endif %}
-        {% endwith %}
-
-        <form method="POST" action="{{ url_for('register') }}">
-            
+<div class="auth-form-container">
+    <h2>Registrieren</h2>
+    <form method="POST" action="{{ url_for('register') }}">
+        <div class="form-group">
             <label for="username">Benutzername</label>
-            <input type="text" id="username" name="username" required>
-            
+            <input type="text" class="form-control" id="username" name="username" required>
+        </div>
+        <div class="form-group">
             <label for="email">E-Mail-Adresse</label>
-            <input type="email" id="email" name="email" required>
-
+            <input type="email" class="form-control" id="email" name="email" required>
+        </div>
+        <div class="form-group">
             <label for="password">Passwort</label>
-            <input type="password" id="password" name="password" required>
-            
-            <button type="submit" class="button">Registrieren</button>
-        </form>
+            <input type="password" class="form-control" id="password" name="password" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block mt-4">Konto erstellen</button>
+    </form>
+    <div class="auth-switch-link">
+        <p>Bereits ein Konto? <a href="{{ url_for('login') }}">Zum Login</a></p>
     </div>
-</main>
+</div>
 {% endblock %}

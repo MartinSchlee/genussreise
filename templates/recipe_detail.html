@@ -1,135 +1,34 @@
 {% extends "base.html" %}
 {% block content %}
-<main class="recipe-detail-page">
-    <div class="detail-card">
-        <h1>{{ recipe.title }}</h1>
-        <p class="author-info">Ein Rezept von: {{ recipe.author.username }}</p>
-        <div id="rating-section" data-recipe-id="{{ recipe.id }}">
-            <div class="star-rating-detail-wrapper">
-                <div id="current-rating-display" class="star-rating-detail">
-                    <div class="stars-outer">
-                        <div class="stars-inner" style="width: {{ (recipe.average_rating / 5 * 100) }}%;"></div>
-                    </div>
-                    <span class="rating-text">
-                        {{ "%.1f"|format(recipe.average_rating) }} Sterne ({{ recipe.rating_count }} Bewertungen)
-                    </span>
-                </div>
-                {% if current_user.is_authenticated %}
-                <div id="user-rating-form" class="rating-form">
-                    <p>Bewerte dieses Rezept:</p>
-                    <div class="rating-stars">
-                        <button type="button" data-stars="5" class="star-btn" aria-label="5 Sterne">★</button>
-                        <button type="button" data-stars="4" class="star-btn" aria-label="4 Sterne">★</button>
-                        <button type="button" data-stars="3" class="star-btn" aria-label="3 Sterne">★</button>
-                        <button type="button" data-stars="2" class="star-btn" aria-label="2 Sterne">★</button>
-                        <button type="button" data-stars="1" class="star-btn" aria-label="1 Stern">★</button>
-                    </div>
-                    <small id="rating-feedback" class="rating-feedback-message"></small>
-                </div>
-                {% else %}
-                <p class="rating-login-prompt"><a href="{{ url_for('login') }}">Logge dich ein</a>, um dieses Rezept zu bewerten.</p>
-                {% endif %}
-            </div>
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <h1>{{ recipe.name }}</h1>
+            {% if recipe.servings %}
+                <p class="text-muted">Für {{ recipe.servings }}</p>
+            {% endif %}
+            <p><small class="text-muted">Von: {{ recipe.author.username }}</small></p>
+            <hr>
+            <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" class="img-fluid rounded mb-4" alt="{{ recipe.name }}">
+            <h3>Anleitung</h3>
+            <p>{{ recipe.instructions | nl2br }}</p>
         </div>
-        <div class="category-tags">
-            {% for cat in recipe.categories %}
-                <a href="{{ url_for('recipes_by_category', category_id=cat.id) }}" class="tag">{{ cat.name }}</a>
-            {% endfor %}
-        </div>
-        <img class="detail-image" src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" alt="{{ recipe.title }}">
-        <div class="time-info-bar">
-            <div> <span class="icon">⏰</span> <strong>Vorbereitung:</strong> {{ recipe.time_prep or 'N/A' }} </div>
-            <div> <span class="icon">🍳</span> <strong>Garzeit:</strong> {{ recipe.time_cook or 'N/A' }} </div>
-            <div> <span class="icon">🧊</span> <strong>Ruhezeit:</strong> {{ recipe.time_rest or 'N/A' }} </div>
-        </div>
-        <hr>
-        <div class="main-content-grid">
-            <div class="left-column">
-                <h3>Zutaten</h3>
-                <p>für <strong>{{ recipe.portions }}</strong> Portion(en)</p>
-                <table class="ingredients-table">
-                    <tbody>
-                        {% for line in recipe.ingredients.split('\n') %}
-                            {% if '-' in line %}
-                                {% set parts = line.split('-', 1) %}
-                                <tr>
-                                    <td class="amount">{{ parts[0].strip() }}</td>
-                                    <td>{{ parts[1].strip() }}</td>
-                                </tr>
-                            {% endif %}
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <br>
-                <h3>Nährwertangaben (ca. pro 100g)</h3>
-                <table class="nutrition-table">
-                    <tbody>
-                        <tr> <td>Brennwert</td> <td>{{ recipe.nutrition_kcal or 'N/A' }} kcal</td> </tr>
-                        <tr> <td>Eiweiß</td> <td>{{ recipe.nutrition_protein or 'N/A' }} g</td> </tr>
-                        <tr> <td>Kohlenhydrate</td> <td>{{ recipe.nutrition_carbs or 'N/A' }} g</td> </tr>
-                        <tr> <td>Fett</td> <td>{{ recipe.nutrition_fat or 'N/A' }} g</td> </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="right-column">
-                <h3>Anleitung</h3>
-                <div class="instructions-text">
-                    <pre>{{ recipe.instructions }}</pre>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    Zutaten
                 </div>
+                <ul class="list-group list-group-flush">
+                    {% for ingredient in recipe.ingredients %}
+                        <li class="list-group-item">
+                            {{ ingredient.quantity }} {{ ingredient.unit }} {{ ingredient.name }}
+                        </li>
+                    {% else %}
+                        <li class="list-group-item">Keine Zutaten angegeben.</li>
+                    {% endfor %}
+                </ul>
             </div>
         </div>
     </div>
-</main>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const ratingForm = document.getElementById('user-rating-form');
-    if (!ratingForm) return; // Bricht ab, wenn der User nicht eingeloggt ist
-    const starButtons = ratingForm.querySelectorAll('.star-btn');
-    const recipeId = document.getElementById('rating-section').dataset.recipeId;
-    const feedbackMessage = document.getElementById('rating-feedback');
-    starButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const stars = this.dataset.stars;
-            
-            // Deaktiviere die Buttons, um doppelte Klicks zu verhindern
-            starButtons.forEach(btn => btn.disabled = true);
-            feedbackMessage.textContent = 'Speichere...';
-            const formData = new FormData();
-            formData.append('stars', stars);
-            fetch(`/rate_recipe/${recipeId}`, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Update die Anzeige
-                    const avgRating = data.average_rating.toFixed(1);
-                    const ratingCount = data.rating_count;
-                    const starsInner = document.querySelector('#current-rating-display .stars-inner');
-                    const ratingText = document.querySelector('#current-rating-display .rating-text');
-                    
-                    starsInner.style.width = (data.average_rating / 5 * 100) + '%';
-                    ratingText.textContent = `${avgRating} Sterne (${ratingCount} Bewertungen)`;
-                    
-                    feedbackMessage.textContent = 'Danke für deine Bewertung!';
-                } else {
-                    feedbackMessage.textContent = 'Ein Fehler ist aufgetreten.';
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                feedbackMessage.textContent = 'Netzwerkfehler.';
-            })
-            .finally(() => {
-                // Aktiviere die Buttons wieder
-                setTimeout(() => {
-                    starButtons.forEach(btn => btn.disabled = false);
-                    feedbackMessage.textContent = ''; // Nachricht ausblenden
-                }, 2000);
-            });
-        });
-    });
-});
-</script>
+</div>
 {% endblock %}
