@@ -1,8 +1,80 @@
-/* ... (alle bisherigen Stile bleiben unverändert) ... */
+/* Header/Navbar Styling */
+.navbar {
+    background-color: #e87722 !important;
+    border-bottom: 2px solid #d46a1e;
+}
 
-/* NEU: Styling für die Sterne */
+/* KORRIGIERTE REGEL: Logo visuell nach links rücken */
+.navbar .navbar-brand {
+    position: relative; /* Erlaube visuelle Verschiebung */
+    left: -15px;      /* Verschiebe es um 15px nach links, ohne das Layout zu stören */
+}
+
+/* Schrift in der Navbar weiß machen */
+.navbar .nav-link,
+.navbar .navbar-text {
+    color: #ffffff !important;
+}
+/* Wir nehmen .navbar-brand hier raus, damit es nicht mit der obigen Regel in Konflikt gerät */
+.navbar-dark .navbar-brand {
+    color: #ffffff !important;
+}
+
+
+/* Optional: Leichter Dim-Effekt beim Hovern über Links */
+.navbar .nav-link:hover {
+    color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* Regel für den Such-Button */
+.navbar .btn-outline-light {
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+.navbar .btn-outline-light:hover {
+    color: #e87722;
+    background-color: #ffffff;
+    border-color: #ffffff;
+}
+
+
+/* General Body & Footer */
+body {
+    background-color: #f8f9fa;
+}
+
+.footer {
+    background-color: #e9ecef;
+}
+
+/* Auth Forms (Login, Register, Forgot Password) */
+.auth-form-container {
+    max-width: 450px;
+    margin: 40px auto;
+    padding: 30px;
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}
+
+.auth-switch-link {
+    text-align: center;
+}
+
+/* Recipe Cards */
+.card {
+    transition: box-shadow 0.3s ease-in-out;
+}
+
+.card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Rating Stars */
 .rating-stars, .rating-form-stars {
-    color: #ffc107; /* Stern-Farbe (Bootstrap Gelb) */
+    color: #ffc107;
 }
 
 .rating-form-stars button {
@@ -10,15 +82,15 @@
     border: none;
     padding: 0 2px;
     cursor: pointer;
-    color: #e0e0e0; /* Farbe für leere Sterne im Formular */
+    color: #e0e0e0;
     font-size: 1.5rem;
     transition: color 0.2s;
 }
 
 .rating-form-stars:hover button {
-    color: #ffc107; /* Alle Sterne werden beim Hovern gelb */
+    color: #ffc107;
 }
 
 .rating-form-stars button:hover ~ button {
-    color: #e0e0e0; /* Sterne rechts vom gehoverten Stern bleiben grau */
+    color: #e0e0e0;
 }

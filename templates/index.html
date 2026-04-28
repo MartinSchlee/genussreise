@@ -14,7 +14,6 @@
                         <h5 class="card-title">{{ recipe.name }}</h5>
                         <p class="card-text"><small class="text-muted">Von: {{ recipe.author.username }}</small></p>
                         
-                        <!-- NEU: Sterne-Anzeige auf der Karte -->
                         <div class="rating-stars mb-2">
                             {% for i in range(5) %}
                                 <i class="{% if i < recipe.average_rating %}fas fa-star{% else %}far fa-star{% endif %}"></i>
@@ -23,17 +22,30 @@
                         </div>
 
                         <div class="mt-auto">
-                            {% if recipe.category %}<a href="{{ url_for('recipes_in_category', category_id=recipe.category.id) }}" class="badge badge-info mb-2">{{ recipe.category.name }}</a>{% endif %}
+                            {% if recipe.category %}
+                                <a href="{{ url_for('recipes_in_category', category_id=recipe.category.id) }}" class="badge badge-info mb-2">{{ recipe.category.name }}</a>
+                            {% endif %}
                         </div>
                     </div>
                     <div class="card-footer bg-white border-top-0">
                         <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="btn btn-primary btn-sm">Ansehen</a>
-                        <!-- ... (Rest bleibt gleich) ... -->
+                        {% if current_user.is_authenticated and current_user == recipe.author %}
+                            <a href="{{ url_for('edit_recipe', recipe_id=recipe.id) }}" class="btn btn-secondary btn-sm">Bearbeiten</a>
+                        {% endif %}
+                        {% if current_user.is_authenticated and (current_user == recipe.author or current_user.username in config['ADMIN_USERNAMES']) %}
+                            <form action="{{ url_for('delete_recipe', recipe_id=recipe.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Sicher löschen?');">
+                                <button type="submit" class="btn btn-danger btn-sm">Löschen</button>
+                            </form>
+                        {% endif %}
                     </div>
                 </div>
             </div>
         {% else %}
-            <!-- ... (bleibt gleich) ... -->
+            <div class="col">
+                <div class="alert alert-secondary">
+                    <p class="mb-0">Noch keine Rezepte vorhanden. <a href="{{ url_for('add_recipe') }}" class="alert-link">Erstelle das erste Rezept!</a></p>
+                </div>
+            </div>
         {% endfor %}
     </div>
 </main>
