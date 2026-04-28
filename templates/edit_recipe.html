@@ -1,53 +1,81 @@
 {% extends "base.html" %}
-{% block content %}
-<div class="container mt-4">
-    <h2>Rezept bearbeiten: {{ recipe.name }}</h2>
-    <form method="POST" action="{{ url_for('edit_recipe', recipe_id=recipe.id) }}">
-        <!-- ... (Felder für Name, Portionen, Kategorie bleiben gleich) ... -->
-        <div class="form-group">
-            <label for="recipe_name">Rezeptname</label>
-            <input type="text" class="form-control" id="recipe_name" name="recipe_name" value="{{ recipe.name }}" required>
-        </div>
-        <div class="row">
-            <div class="col-md-6">
-                <div class="form-group">
-                    <label for="servings">Portionen</label>
-                    <input type="text" class="form-control" id="servings" name="servings" value="{{ recipe.servings }}">
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="form-group">
-                    <label for="category_id">Kategorie</label>
-                    <select class="form-control" id="category_id" name="category_id" required>
-                        {% for category in categories %}
-                            <option value="{{ category.id }}" {% if category.id == recipe.category_id %}selected{% endif %}>
-                                {{ category.name }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-        </div>
 
-        <hr>
-        <!-- NEU: Nährwertangaben, vorausgefüllt -->
-        <h5>Nährwertangaben (optional, pro Portion)</h5>
-        <div class="row">
-            <div class="col-md-3"><div class="form-group"><label for="calories">Kalorien (kcal)</label><input type="text" class="form-control" id="calories" name="calories" value="{{ recipe.calories }}"></div></div>
-            <div class="col-md-3"><div class="form-group"><label for="protein">Eiweiß (g)</label><input type="text" class="form-control" id="protein" name="protein" value="{{ recipe.protein }}"></div></div>
-            <div class="col-md-3"><div class="form-group"><label for="carbs">Kohlenhydrate (g)</label><input type="text" class="form-control" id="carbs" name="carbs" value="{{ recipe.carbs }}"></div></div>
-            <div class="col-md-3"><div class="form-group"><label for="fat">Fett (g)</label><input type="text" class="form-control" id="fat" name="fat" value="{{ recipe.fat }}"></div></div>
+{% block content %}
+<h2>Rezept bearbeiten: {{ recipe.name }}</h2>
+<form method="POST" enctype="multipart/form-data">
+    <div class="form-group">
+        <label for="recipe_name">Rezeptname</label>
+        <input type="text" class="form-control" id="recipe_name" name="recipe_name" value="{{ recipe.name }}" required>
+    </div>
+    <div class="form-group">
+        <label for="category_id">Kategorie</label>
+        <select class="form-control" id="category_id" name="category_id" required>
+            {% for category in categories %}
+                <option value="{{ category.id }}" {% if category.id == recipe.category_id %}selected{% endif %}>{{ category.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <!-- HIER WURDE "PORTIONEN" HINZUGEFÜGT -->
+    <fieldset class="mb-3">
+        <legend class="h6">Allgemeine Angaben</legend>
+        <div class="form-row">
+            <div class="col"><label>Portionen</label><input type="text" class="form-control" name="servings" value="{{ recipe.servings or '' }}"></div>
+            <div class="col"><label>Vorbereitung</label><input type="text" class="form-control" name="prep_time" value="{{ recipe.prep_time or '' }}"></div>
+            <div class="col"><label>Garzeit</label><input type="text" class="form-control" name="cook_time" value="{{ recipe.cook_time or '' }}"></div>
+            <div class="col"><label>Ruhezeit</label><input type="text" class="form-control" name="rest_time" value="{{ recipe.rest_time or '' }}"></div>
+            <div class="col"><label>Gesamtzeit</label><input type="text" class="form-control" name="total_time" value="{{ recipe.total_time or '' }}"></div>
         </div>
-        <hr>
-        
-        <!-- ... (Anleitung bleibt gleich) ... -->
-        <div class="form-group">
-            <label for="instructions">Anleitung</label>
-            <textarea class="form-control" id="instructions" name="instructions" rows="10" required>{{ recipe.instructions }}</textarea>
+    </fieldset>
+
+    <fieldset id="ingredients-container" class="mb-3">
+        <legend class="h6">Zutaten</legend>
+        {% for ingredient in recipe.ingredients %}
+        <div class="ingredient-row form-row align-items-end mb-2">
+            <div class="col-md-2">{% if loop.first %}<label>Menge</label>{% endif %}<input type="text" name="quantity[]" class="form-control" value="{{ ingredient.quantity or '' }}"></div>
+            <div class="col-md-2">{% if loop.first %}<label>Einheit</label>{% endif %}<input type="text" name="unit[]" class="form-control" value="{{ ingredient.unit or '' }}"></div>
+            <div class="col">{% if loop.first %}<label>Zutat</label>{% endif %}<input type="text" name="ingredient_name[]" class="form-control" value="{{ ingredient.name }}"></div>
         </div>
-        
-        <button type="submit" class="btn btn-primary mt-3">Änderungen speichern</button>
-        <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="btn btn-secondary mt-3">Abbrechen</a>
-    </form>
-</div>
+        {% else %}
+         <div class="ingredient-row form-row align-items-end mb-2">
+            <div class="col-md-2"><label>Menge</label><input type="text" name="quantity[]" class="form-control"></div>
+            <div class="col-md-2"><label>Einheit</label><input type="text" name="unit[]" class="form-control"></div>
+            <div class="col"><label>Zutat</label><input type="text" name="ingredient_name[]" class="form-control"></div>
+        </div>
+        {% endfor %}
+    </fieldset>
+    <button type="button" id="add-ingredient" class="btn btn-secondary btn-sm mb-3">Weitere Zutat hinzufügen</button>
+    
+    <div class="form-group">
+        <label for="instructions">Zubereitung</label>
+        <textarea class="form-control" id="instructions" name="instructions" rows="10" required>{{ recipe.instructions }}</textarea>
+    </div>
+
+    <!-- HIER WURDE DIE ÜBERSCHRIFT GEÄNDERT & "PORTIONEN" ENTFERNT -->
+    <fieldset class="mb-3">
+        <legend class="h6">Nährwertangaben pro 100g (optional)</legend>
+        <div class="form-row">
+            <div class="col"><input type="text" class="form-control" name="calories" placeholder="Kalorien" value="{{ recipe.calories or '' }}"></div>
+            <div class="col"><input type="text" class="form-control" name="protein" placeholder="Protein" value="{{ recipe.protein or '' }}"></div>
+            <div class="col"><input type="text" class="form-control" name="carbs" placeholder="Kohlenhydrate" value="{{ recipe.carbs or '' }}"></div>
+            <div class="col"><input type="text" class="form-control" name="fat" placeholder="Fett" value="{{ recipe.fat or '' }}"></div>
+        </div>
+    </fieldset>
+
+    <button type="submit" class="btn btn-primary">Änderungen speichern</button>
+</form>
+
+<script>
+document.getElementById('add-ingredient').addEventListener('click', function() {
+    const container = document.getElementById('ingredients-container');
+    const newRow = document.createElement('div');
+    newRow.className = 'ingredient-row form-row align-items-end mb-2';
+    newRow.innerHTML = `
+        <div class="col-md-2"><input type="text" name="quantity[]" class="form-control"></div>
+        <div class="col-md-2"><input type="text" name="unit[]" class="form-control"></div>
+        <div class="col"><input type="text" name="ingredient_name[]" class="form-control"></div>
+    `;
+    container.appendChild(newRow);
+});
+</script>
 {% endblock %}

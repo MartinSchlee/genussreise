@@ -8,12 +8,20 @@
         <div class="d-flex align-items-center mb-3 text-muted">
             <span class="mr-4">Von: {{ recipe.author.username }}</span>
             <div class="rating-stars">
-                {% for i in range(5) %}
-                    <i class="{% if i < recipe.average_rating %}fas fa-star{% else %}far fa-star{% endif %}"></i>
-                {% endfor %}
+                {% for i in range(5) %}<i class="{% if i < recipe.average_rating %}fas fa-star{% else %}far fa-star{% endif %}"></i>{% endfor %}
                 <small class="ml-1">({{ recipe.rating_count }} Bewertung{{ 'en' if recipe.rating_count != 1 }})</small>
             </div>
         </div>
+
+        <!-- HIER WURDE DIE ANZEIGE FÜR "PORTIONEN" HINZUGEFÜGT -->
+        <div class="d-flex flex-wrap text-muted mb-4">
+            {% if recipe.servings %}<div class="mr-4 mb-2"><i class="fas fa-users mr-1"></i><strong>Portionen:</strong> {{ recipe.servings }}</div>{% endif %}
+            {% if recipe.prep_time %}<div class="mr-4 mb-2"><i class="far fa-clock mr-1"></i><strong>Vorbereitung:</strong> {{ recipe.prep_time }}</div>{% endif %}
+            {% if recipe.cook_time %}<div class="mr-4 mb-2"><i class="fas fa-fire-alt mr-1"></i><strong>Garzeit:</strong> {{ recipe.cook_time }}</div>{% endif %}
+            {% if recipe.rest_time %}<div class="mr-4 mb-2"><i class="far fa-snowflake mr-1"></i><strong>Ruhezeit:</strong> {{ recipe.rest_time }}</div>{% endif %}
+            {% if recipe.total_time %}<div class="mr-4 mb-2"><i class="fas fa-hourglass-half mr-1"></i><strong>Gesamtzeit:</strong> {{ recipe.total_time }}</div>{% endif %}
+        </div>
+        
         <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" class="img-fluid rounded mb-4" alt="{{ recipe.name }}">
         
         <div class="mb-4">
@@ -22,12 +30,10 @@
         </div>
     </div>
 
-    <!-- Zutaten und Nährwerte (rechte Spalte auf großen Bildschirmen) -->
+    <!-- Zutaten und Nährwerte (rechte Spalte) -->
     <div class="col-lg-4">
         <div class="card mb-4">
-            <div class="card-header">
-                Zutaten
-            </div>
+            <div class="card-header">Zutaten</div>
             <ul class="list-group list-group-flush">
                 {% for ingredient in recipe.ingredients %}
                     <li class="list-group-item">{{ ingredient.quantity }} {{ ingredient.unit }} {{ ingredient.name }}</li>
@@ -37,12 +43,10 @@
             </ul>
         </div>
         
+        <!-- HIER WURDE DIE ÜBERSCHRIFT GEÄNDERT & "PORTIONEN" ENTFERNT -->
         <div class="card">
-            <div class="card-header">
-                Nährwerte (pro Portion)
-            </div>
+            <div class="card-header">Nährwert pro 100g</div>
             <ul class="list-group list-group-flush">
-                <li class="list-group-item">Portionen: {{ recipe.servings or 'k.A.' }}</li>
                 <li class="list-group-item">Kalorien: {{ recipe.calories or 'k.A.' }}</li>
                 <li class="list-group-item">Protein: {{ recipe.protein or 'k.A.' }}</li>
                 <li class="list-group-item">Kohlenhydrate: {{ recipe.carbs or 'k.A.' }}</li>
@@ -52,14 +56,14 @@
     </div>
 </div>
 
+<!-- (Der Rest der Datei für Bewertungen bleibt unverändert) -->
 <hr class="my-5">
-
-<!-- Bewertungs-Sektion -->
 <div class="row">
     <div class="col-lg-8">
         <h4>Bewerte dieses Rezept</h4>
         {% if current_user.is_authenticated %}
-            {% if not recipe.reviews|selectattr('user_id', 'equalto', current_user.id)|first %}
+            {% set user_review = recipe.reviews|selectattr('user_id', 'equalto', current_user.id)|first %}
+            {% if not user_review %}
                 <form action="{{ url_for('rate_recipe', recipe_id=recipe.id) }}" method="POST">
                     <div class="form-group">
                         <label>Deine Sternebewertung:</label>
@@ -88,23 +92,16 @@
         {% endif %}
     </div>
 </div>
-
 <hr class="my-5">
-
-<!-- Liste der Bewertungen -->
 <div class="row">
     <div class="col-lg-8">
         <h4>Was andere sagen ({{ recipe.reviews|length }})</h4>
         {% for review in recipe.reviews|sort(attribute='timestamp', reverse=True) %}
             <div class="media mt-4">
                 <div class="media-body">
-                    <h5 class="mt-0">{{ review.reviewer.username }} 
-                        <small class="text-muted ml-2">{{ review.timestamp.strftime('%d.%m.%Y') }}</small>
-                    </h5>
+                    <h5 class="mt-0">{{ review.reviewer.username }} <small class="text-muted ml-2">{{ review.timestamp.strftime('%d.%m.%Y') }}</small></h5>
                     <div class="rating-stars mb-2">
-                        {% for i in range(5) %}
-                            <i class="{% if i < review.rating %}fas fa-star{% else %}far fa-star{% endif %}"></i>
-                        {% endfor %}
+                        {% for i in range(5) %}<i class="{% if i < review.rating %}fas fa-star{% else %}far fa-star{% endif %}"></i>{% endfor %}
                     </div>
                     <p>{{ review.text }}</p>
                 </div>
@@ -114,31 +111,23 @@
         {% endfor %}
     </div>
 </div>
-
-<!-- JavaScript für die interaktiven Sterne -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const stars = document.querySelectorAll('.rating-form-stars .star');
     const ratingInput = document.getElementById('rating-value');
-
-    stars.forEach(star => {
-        star.addEventListener('click', function() {
-            const value = this.dataset.value;
-            ratingInput.value = value;
-            
-            stars.forEach(s => {
-                const icon = s.querySelector('i');
-                if (s.dataset.value <= value) {
-                    icon.classList.remove('far');
-                    icon.classList.add('fas');
-                } else {
-                    icon.classList.remove('fas');
-                    icon.classList.add('far');
-                }
+    if (stars.length > 0 && ratingInput) {
+        stars.forEach(star => {
+            star.addEventListener('click', function() {
+                const value = this.dataset.value;
+                ratingInput.value = value;
+                stars.forEach(s => {
+                    const icon = s.querySelector('i');
+                    if (s.dataset.value <= value) { icon.classList.remove('far'); icon.classList.add('fas'); } 
+                    else { icon.classList.remove('fas'); icon.classList.add('far'); }
+                });
             });
         });
-    });
+    }
 });
 </script>
-
 {% endblock %}

@@ -1,74 +1,78 @@
 {% extends "base.html" %}
+
 {% block content %}
-<div class="container mt-4">
-    <h2>Neues Rezept hinzufügen</h2>
-    <form method="POST" action="{{ url_for('add_recipe') }}" enctype="multipart/form-data">
-        <!-- ... (Rezeptname bleibt gleich) ... -->
-        <div class="form-group">
-            <label for="recipe_name">Rezeptname</label>
-            <input type="text" class="form-control" id="recipe_name" name="recipe_name" required>
-        </div>
+<h2>Neues Rezept erstellen</h2>
+<form method="POST" enctype="multipart/form-data">
+    <div class="form-group">
+        <label for="recipe_name">Rezeptname</label>
+        <input type="text" class="form-control" id="recipe_name" name="recipe_name" required>
+    </div>
+    <div class="form-group">
+        <label for="category_id">Kategorie</label>
+        <select class="form-control" id="category_id" name="category_id" required>
+            <option value="">Bitte wählen...</option>
+            {% for category in categories %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+     <div class="form-group">
+        <label for="image_file">Rezeptbild</label>
+        <input type="file" class="form-control-file" id="image_file" name="image_file">
+    </div>
 
-        <!-- ... (Portionen und Kategorie bleiben gleich) ... -->
-        <div class="row">
-            <div class="col-md-6">
-                <div class="form-group">
-                    <label for="servings">Portionen</label>
-                    <input type="text" class="form-control" id="servings" name="servings" placeholder="z.B. 4 Personen">
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="form-group">
-                    <label for="category_id">Kategorie</label>
-                    <select class="form-control" id="category_id" name="category_id" required>
-                        <option value="" disabled selected>Bitte wählen...</option>
-                        {% for category in categories %}
-                            <option value="{{ category.id }}">{{ category.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
+    <!-- HIER WURDE "PORTIONEN" HINZUGEFÜGT -->
+    <fieldset class="mb-3">
+        <legend class="h6">Allgemeine Angaben</legend>
+        <div class="form-row">
+            <div class="col"><label>Portionen</label><input type="text" class="form-control" name="servings" placeholder="z.B. 4"></div>
+            <div class="col"><label>Vorbereitung</label><input type="text" class="form-control" name="prep_time" placeholder="z.B. 20 Min"></div>
+            <div class="col"><label>Garzeit</label><input type="text" class="form-control" name="cook_time" placeholder="z.B. 30 Min"></div>
+            <div class="col"><label>Ruhezeit</label><input type="text" class="form-control" name="rest_time" placeholder="z.B. 1 Std"></div>
+            <div class="col"><label>Gesamtzeit</label><input type="text" class="form-control" name="total_time" placeholder="z.B. 50 Min"></div>
         </div>
+    </fieldset>
 
-        <hr>
-        <!-- NEU: Nährwertangaben -->
-        <h5>Nährwertangaben (optional, pro Portion)</h5>
-        <div class="row">
-            <div class="col-md-3"><div class="form-group"><label for="calories">Kalorien (kcal)</label><input type="text" class="form-control" id="calories" name="calories"></div></div>
-            <div class="col-md-3"><div class="form-group"><label for="protein">Eiweiß (g)</label><input type="text" class="form-control" id="protein" name="protein"></div></div>
-            <div class="col-md-3"><div class="form-group"><label for="carbs">Kohlenhydrate (g)</label><input type="text" class="form-control" id="carbs" name="carbs"></div></div>
-            <div class="col-md-3"><div class="form-group"><label for="fat">Fett (g)</label><input type="text" class="form-control" id="fat" name="fat"></div></div>
+    <fieldset id="ingredients-container" class="mb-3">
+        <legend class="h6">Zutaten</legend>
+        <div class="ingredient-row form-row align-items-end mb-2">
+            <div class="col-md-2"><label>Menge</label><input type="text" name="quantity[]" class="form-control"></div>
+            <div class="col-md-2"><label>Einheit</label><input type="text" name="unit[]" class="form-control"></div>
+            <div class="col"><label>Zutat</label><input type="text" name="ingredient_name[]" class="form-control"></div>
         </div>
-        <hr>
+    </fieldset>
+    <button type="button" id="add-ingredient" class="btn btn-secondary btn-sm mb-3">Weitere Zutat hinzufügen</button>
 
-        <!-- ... (Bild-Upload, Zutaten, Anleitung bleiben gleich) ... -->
-        <div class="form-group">
-            <label for="image_file">Rezeptbild</label>
-            <input type="file" class="form-control-file" id="image_file" name="image_file">
+    <div class="form-group">
+        <label for="instructions">Zubereitung</label>
+        <textarea class="form-control" id="instructions" name="instructions" rows="10" required></textarea>
+    </div>
+
+    <!-- HIER WURDE DIE ÜBERSCHRIFT GEÄNDERT & "PORTIONEN" ENTFERNT -->
+    <fieldset class="mb-3">
+        <legend class="h6">Nährwertangaben pro 100g (optional)</legend>
+        <div class="form-row">
+            <div class="col"><input type="text" class="form-control" name="calories" placeholder="Kalorien"></div>
+            <div class="col"><input type="text" class="form-control" name="protein" placeholder="Protein"></div>
+            <div class="col"><input type="text" class="form-control" name="carbs" placeholder="Kohlenhydrate"></div>
+            <div class="col"><input type="text" class="form-control" name="fat" placeholder="Fett"></div>
         </div>
-        <div id="ingredients-container">
-            <label>Zutaten</label>
-            <div class="ingredient-row form-row mb-2">
-                <div class="col"><input type="text" class="form-control" name="quantity[]" placeholder="Menge"></div>
-                <div class="col"><input type="text" class="form-control" name="unit[]" placeholder="Einheit"></div>
-                <div class="col-6"><input type="text" class="form-control" name="ingredient_name[]" placeholder="Zutat"></div>
-            </div>
-        </div>
-        <button type="button" class="btn btn-secondary btn-sm mb-3" onclick="addIngredient()">Weitere Zutat</button>
-        <div class="form-group">
-            <label for="instructions">Anleitung</label>
-            <textarea class="form-control" id="instructions" name="instructions" rows="10" required></textarea>
-        </div>
-        
-        <button type="submit" class="btn btn-primary mt-3">Rezept speichern</button>
-    </form>
-</div>
+    </fieldset>
+
+    <button type="submit" class="btn btn-primary">Rezept speichern</button>
+</form>
+
 <script>
-    function addIngredient() {
-        var container = document.getElementById('ingredients-container');
-        var newRow = container.querySelector('.ingredient-row').cloneNode(true);
-        newRow.querySelectorAll('input').forEach(input => input.value = '');
-        container.appendChild(newRow);
-    }
+document.getElementById('add-ingredient').addEventListener('click', function() {
+    const container = document.getElementById('ingredients-container');
+    const newRow = document.createElement('div');
+    newRow.className = 'ingredient-row form-row align-items-end mb-2';
+    newRow.innerHTML = `
+        <div class="col-md-2"><input type="text" name="quantity[]" class="form-control"></div>
+        <div class="col-md-2"><input type="text" name="unit[]" class="form-control"></div>
+        <div class="col"><input type="text" name="ingredient_name[]" class="form-control"></div>
+    `;
+    container.appendChild(newRow);
+});
 </script>
 {% endblock %}

@@ -22,15 +22,14 @@ app.config['ADMIN_USERNAMES'] = ['Martin']
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'fasi270669@gmail.com'
-app.config['MAIL_PASSWORD'] = 'wlqs fbtg fqqi uywd'
+app.config['MAIL_USERNAME'] = 'deine.email@gmail.com'
+app.config['MAIL_PASSWORD'] = 'dein_app_passwort_hier'
 app.config['MAIL_DEFAULT_SENDER'] = ('Genussreise', 'deine.email@gmail.com')
 
 db = SQLAlchemy(app)
 mail = Mail(app)
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
-# ... (Context Processor und Filter bleiben gleich) ...
 @app.context_processor
 def inject_global_variables():
     categories = Category.query.order_by(Category.name).all()
@@ -52,7 +51,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
     recipes = db.relationship('Recipe', backref='author', lazy=True, cascade="all, delete-orphan")
-    reviews = db.relationship('Review', backref='reviewer', lazy=True, cascade="all, delete-orphan") # NEUE BEZIEHUNG
+    reviews = db.relationship('Review', backref='reviewer', lazy=True, cascade="all, delete-orphan")
 
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -62,9 +61,12 @@ class Category(db.Model):
 class Recipe(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    # ... (alle anderen Spalten bleiben gleich) ...
     instructions = db.Column(db.Text, nullable=False)
     image_file = db.Column(db.String(100), nullable=False, default='default.jpg')
+    prep_time = db.Column(db.String(50), nullable=True)
+    cook_time = db.Column(db.String(50), nullable=True)
+    rest_time = db.Column(db.String(50), nullable=True)
+    total_time = db.Column(db.String(50), nullable=True)
     servings = db.Column(db.String(50), nullable=True)
     calories = db.Column(db.String(50), nullable=True)
     protein = db.Column(db.String(50), nullable=True)
@@ -75,7 +77,7 @@ class Recipe(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
     ingredients = db.relationship('Ingredient', backref='recipe', lazy=True, cascade="all, delete-orphan")
-    reviews = db.relationship('Review', backref='recipe', lazy=True, cascade="all, delete-orphan") # NEUE BEZIEHUNG
+    reviews = db.relationship('Review', backref='recipe', lazy=True, cascade="all, delete-orphan")
 
     @property
     def average_rating(self):
@@ -90,8 +92,6 @@ class Ingredient(db.Model):
     unit = db.Column(db.String(50), nullable=True)
     recipe_id = db.Column(db.Integer, db.ForeignKey('recipe.id'), nullable=False)
 
-
-# NEUES MODELL: Review
 class Review(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     rating = db.Column(db.Integer, nullable=False)
@@ -102,7 +102,6 @@ class Review(db.Model):
 
 
 # --- Login Manager ---
-# ... (bleibt unverändert) ...
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -112,44 +111,6 @@ def load_user(user_id):
 
 
 # --- 3. Routen ---
-# ... (alle anderen Routen bleiben unverändert, außer rate_recipe) ...
-
-@app.route('/rate_recipe/<int:recipe_id>', methods=['POST'])
-@login_required
-def rate_recipe(recipe_id):
-    recipe = Recipe.query.get_or_404(recipe_id)
-    rating = int(request.form.get('rating'))
-    comment = request.form.get('comment') # NEU: Kommentar abrufen
-
-    # Überprüfen, ob der Nutzer bereits eine Bewertung für dieses Rezept abgegeben hat
-    existing_review = Review.query.filter_by(reviewer=current_user, recipe=recipe).first()
-    if existing_review:
-        flash('Du hast dieses Rezept bereits bewertet.', 'warning')
-        return redirect(url_for('recipe_detail', recipe_id=recipe_id))
-
-    if 1 <= rating <= 5:
-        # Neue individuelle Bewertung erstellen und speichern
-        new_review = Review(
-            rating=rating,
-            text=comment,
-            reviewer=current_user,
-            recipe=recipe
-        )
-        db.session.add(new_review)
-        
-        # Aggregierte Bewertung im Rezept-Objekt aktualisieren
-        recipe.rating_sum += rating
-        recipe.rating_count += 1
-        
-        db.session.commit()
-        flash('Vielen Dank für deine Bewertung!', 'success')
-    else:
-        flash('Ungültige Bewertung.', 'danger')
-        
-    return redirect(url_for('recipe_detail', recipe_id=recipe_id))
-
-# Hier folgen alle anderen Routen (index, recipe_detail, etc.), die unverändert bleiben
-# ... (der Code ist identisch zum vorherigen Stand) ...
 @app.route('/')
 def index():
     recipes = Recipe.query.order_by(Recipe.id.desc()).all()
@@ -170,29 +131,30 @@ def recipe_detail(recipe_id):
 def add_recipe():
     categories = Category.query.order_by(Category.name).all()
     if request.method == 'POST':
-        category_id = request.form.get('category_id')
-        if not category_id:
-            flash('Bitte wähle eine Kategorie aus.', 'danger')
-            return render_template('add_recipe.html', categories=categories)
-        image_filename = 'default.jpg'
-        if 'image_file' in request.files:
-            image_file = request.files['image_file']
-            if image_file.filename != '':
-                image_filename = secure_filename(image_file.filename)
-                image_file.save(os.path.join(app.config['UPLOAD_FOLDER'], image_filename))
         new_recipe = Recipe(
             name=request.form.get('recipe_name'),
             instructions=request.form.get('instructions'),
+            prep_time=request.form.get('prep_time'),
+            cook_time=request.form.get('cook_time'),
+            rest_time=request.form.get('rest_time'),
+            total_time=request.form.get('total_time'),
             servings=request.form.get('servings'),
             calories=request.form.get('calories'),
             protein=request.form.get('protein'),
             carbs=request.form.get('carbs'),
             fat=request.form.get('fat'),
-            image_file=image_filename,
+            image_file='default.jpg',
             author=current_user,
-            category_id=category_id
+            category_id=request.form.get('category_id')
         )
+        if 'image_file' in request.files:
+            image_file = request.files['image_file']
+            if image_file.filename != '':
+                image_filename = secure_filename(image_file.filename)
+                image_file.save(os.path.join(app.config['UPLOAD_FOLDER'], image_filename))
+                new_recipe.image_file = image_filename
         db.session.add(new_recipe)
+        
         ingredient_names = request.form.getlist('ingredient_name[]')
         quantities = request.form.getlist('quantity[]')
         units = request.form.getlist('unit[]')
@@ -200,10 +162,12 @@ def add_recipe():
             if ingredient_names[i]:
                 ingredient = Ingredient(name=ingredient_names[i], quantity=quantities[i], unit=units[i], recipe=new_recipe)
                 db.session.add(ingredient)
+        
         db.session.commit()
         flash('Rezept erfolgreich hinzugefügt!', 'success')
         return redirect(url_for('index'))
     return render_template('add_recipe.html', categories=categories)
+
 
 @app.route('/edit_recipe/<int:recipe_id>', methods=['GET', 'POST'])
 @login_required
@@ -216,12 +180,26 @@ def edit_recipe(recipe_id):
     if request.method == 'POST':
         recipe.name = request.form.get('recipe_name')
         recipe.instructions = request.form.get('instructions')
+        recipe.prep_time = request.form.get('prep_time')
+        recipe.cook_time = request.form.get('cook_time')
+        recipe.rest_time = request.form.get('rest_time')
+        recipe.total_time = request.form.get('total_time')
         recipe.servings = request.form.get('servings')
         recipe.category_id = request.form.get('category_id')
         recipe.calories = request.form.get('calories')
         recipe.protein = request.form.get('protein')
         recipe.carbs = request.form.get('carbs')
         recipe.fat = request.form.get('fat')
+
+        Ingredient.query.filter_by(recipe_id=recipe.id).delete()
+        ingredient_names = request.form.getlist('ingredient_name[]')
+        quantities = request.form.getlist('quantity[]')
+        units = request.form.getlist('unit[]')
+        for i in range(len(ingredient_names)):
+            if ingredient_names[i]:
+                ingredient = Ingredient(name=ingredient_names[i], quantity=quantities[i], unit=units[i], recipe=recipe)
+                db.session.add(ingredient)
+
         db.session.commit()
         flash('Rezept erfolgreich aktualisiert!', 'success')
         return redirect(url_for('recipe_detail', recipe_id=recipe.id))
@@ -248,6 +226,27 @@ def search():
     search_term = f"%{query}%"
     results = Recipe.query.filter(or_(Recipe.name.ilike(search_term), Recipe.instructions.ilike(search_term))).all()
     return render_template('search_results.html', recipes=results, query=query)
+
+@app.route('/rate_recipe/<int:recipe_id>', methods=['POST'])
+@login_required
+def rate_recipe(recipe_id):
+    recipe = Recipe.query.get_or_404(recipe_id)
+    rating = int(request.form.get('rating'))
+    comment = request.form.get('comment')
+    existing_review = Review.query.filter_by(reviewer=current_user, recipe=recipe).first()
+    if existing_review:
+        flash('Du hast dieses Rezept bereits bewertet.', 'warning')
+        return redirect(url_for('recipe_detail', recipe_id=recipe_id))
+    if 1 <= rating <= 5:
+        new_review = Review(rating=rating, text=comment, reviewer=current_user, recipe=recipe)
+        db.session.add(new_review)
+        recipe.rating_sum += rating
+        recipe.rating_count += 1
+        db.session.commit()
+        flash('Vielen Dank für deine Bewertung!', 'success')
+    else:
+        flash('Ungültige Bewertung.', 'danger')
+    return redirect(url_for('recipe_detail', recipe_id=recipe_id))
 
 @app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
@@ -327,7 +326,6 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
-# --- 4. Serverstart & DB-Initialisierung ---
 def init_db():
     with app.app_context():
         db.create_all()
@@ -340,4 +338,3 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True)
-
