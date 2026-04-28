@@ -1,45 +1,24 @@
-/* Grundlegende Body-Styles */
-body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    background-color: #f8f9fa; /* Ein sehr helles Grau */
+/* ... (alle bisherigen Stile bleiben unverändert) ... */
+
+/* NEU: Styling für die Sterne */
+.rating-stars, .rating-form-stars {
+    color: #ffc107; /* Stern-Farbe (Bootstrap Gelb) */
 }
 
-/* Navigationsleiste */
-.navbar {
-    border-bottom: 1px solid #dee2e6;
-    box-shadow: 0 2px 4px rgba(0,0,0,.04);
+.rating-form-stars button {
+    background: none;
+    border: none;
+    padding: 0 2px;
+    cursor: pointer;
+    color: #e0e0e0; /* Farbe für leere Sterne im Formular */
+    font-size: 1.5rem;
+    transition: color 0.2s;
 }
 
-.navbar-brand {
-    font-weight: bold;
-    color: #e85a4f !important; /* Der orange Akzent */
-}
-/* ... (viele andere Stile bleiben gleich) ... */
-
-/* Footer-Stil */
-.footer {
-    background-color: #e9ecef; /* Ein deutlicheres, aber immer noch helles Grau */
-    border-top: 1px solid #dee2e6;
+.rating-form-stars:hover button {
+    color: #ffc107; /* Alle Sterne werden beim Hovern gelb */
 }
 
-/* NEU: Container für Login- und Registrierungs-Formulare */
-.auth-form-container {
-    max-width: 450px;
-    margin: 40px auto; /* Zentriert das Formular horizontal und gibt Abstand */
-    padding: 2rem;
-    background-color: #ffffff;
-    border: 1px solid #dee2e6;
-    border-radius: 0.3rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,.05);
-}
-
-.auth-form-container h2 {
-    text-align: center;
-    margin-bottom: 1.5rem;
-    color: #343a40;
-}
-
-.auth-switch-link {
-    text-align: center;
-    margin-top: 1rem;
+.rating-form-stars button:hover ~ button {
+    color: #e0e0e0; /* Sterne rechts vom gehoverten Stern bleiben grau */
 }

@@ -4,30 +4,57 @@
     <div class="row">
         <div class="col-md-8">
             <h1>{{ recipe.name }}</h1>
-            {% if recipe.servings %}
-                <p class="text-muted">Für {{ recipe.servings }}</p>
-            {% endif %}
+            
+            <!-- NEU: Stern-Anzeige -->
+            <div class="d-flex align-items-center mb-2">
+                <div class="rating-stars mr-2">
+                    {% for i in range(5) %}
+                        <i class="{% if i < recipe.average_rating %}fas fa-star{% else %}far fa-star{% endif %}"></i>
+                    {% endfor %}
+                </div>
+                <span class="text-muted">({{ recipe.average_rating }} / 5 aus {{ recipe.rating_count }} Bewertungen)</span>
+            </div>
+
+            <div class="d-flex align-items-center mb-2">
+                {% if recipe.category %}<a href="{{ url_for('recipes_in_category', category_id=recipe.category.id) }}" class="badge badge-info mr-3">{{ recipe.category.name }}</a>{% endif %}
+                <span class="text-muted">{% if recipe.servings %}Für {{ recipe.servings }}{% endif %}</span>
+            </div>
             <p><small class="text-muted">Von: {{ recipe.author.username }}</small></p>
             <hr>
             <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" class="img-fluid rounded mb-4" alt="{{ recipe.name }}">
+            
             <h3>Anleitung</h3>
             <p>{{ recipe.instructions | nl2br }}</p>
         </div>
         <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
-                    Zutaten
+            <!-- NEU: Bewertungs-Formular -->
+            {% if current_user.is_authenticated %}
+                <div class="card mb-4">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Bewerte dieses Rezept!</h5>
+                        <form action="{{ url_for('rate_recipe', recipe_id=recipe.id) }}" method="POST" class="rating-form-stars">
+                            <button type="submit" name="rating" value="1"><i class="fas fa-star"></i></button>
+                            <button type="submit" name="rating" value="2"><i class="fas fa-star"></i></button>
+                            <button type="submit" name="rating" value="3"><i class="fas fa-star"></i></button>
+                            <button type="submit" name="rating" value="4"><i class="fas fa-star"></i></button>
+                            <button type="submit" name="rating" value="5"><i class="fas fa-star"></i></button>
+                        </form>
+                    </div>
                 </div>
+            {% endif %}
+
+            <div class="card mb-4">
+                <div class="card-header">Zutaten</div>
                 <ul class="list-group list-group-flush">
                     {% for ingredient in recipe.ingredients %}
-                        <li class="list-group-item">
-                            {{ ingredient.quantity }} {{ ingredient.unit }} {{ ingredient.name }}
-                        </li>
+                        <li class="list-group-item">{{ ingredient.quantity }} {{ ingredient.unit }} {{ ingredient.name }}</li>
                     {% else %}
                         <li class="list-group-item">Keine Zutaten angegeben.</li>
                     {% endfor %}
                 </ul>
             </div>
+
+            <!-- ... (Nährwert-Tabelle bleibt gleich) ... -->
         </div>
     </div>
 </div>

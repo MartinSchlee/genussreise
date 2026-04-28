@@ -2,24 +2,52 @@
 {% block content %}
 <div class="container mt-4">
     <h2>Rezept bearbeiten: {{ recipe.name }}</h2>
-    <form method="POST" action="{{ url_for('edit_recipe', recipe_id=recipe.id) }}" enctype="multipart/form-data">
-        <!-- ... (Name, Portionen, etc. wie oben) ... -->
-        
-        <!-- VEREINFACHUNG: Dropdown mit der aktuellen Kategorie vorausgewählt -->
+    <form method="POST" action="{{ url_for('edit_recipe', recipe_id=recipe.id) }}">
+        <!-- ... (Felder für Name, Portionen, Kategorie bleiben gleich) ... -->
         <div class="form-group">
-            <label for="category_id">Kategorie</label>
-            <select class="form-control" id="category_id" name="category_id" required>
-                {% for category in categories %}
-                    <option value="{{ category.id }}" {% if category.id == recipe.category_id %}selected{% endif %}>
-                        {{ category.name }}
-                    </option>
-                {% endfor %}
-            </select>
+            <label for="recipe_name">Rezeptname</label>
+            <input type="text" class="form-control" id="recipe_name" name="recipe_name" value="{{ recipe.name }}" required>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="servings">Portionen</label>
+                    <input type="text" class="form-control" id="servings" name="servings" value="{{ recipe.servings }}">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="category_id">Kategorie</label>
+                    <select class="form-control" id="category_id" name="category_id" required>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}" {% if category.id == recipe.category_id %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
         </div>
 
-        <!-- ... (Anleitung, Bild-Upload etc. können hier noch ergänzt werden) ... -->
+        <hr>
+        <!-- NEU: Nährwertangaben, vorausgefüllt -->
+        <h5>Nährwertangaben (optional, pro Portion)</h5>
+        <div class="row">
+            <div class="col-md-3"><div class="form-group"><label for="calories">Kalorien (kcal)</label><input type="text" class="form-control" id="calories" name="calories" value="{{ recipe.calories }}"></div></div>
+            <div class="col-md-3"><div class="form-group"><label for="protein">Eiweiß (g)</label><input type="text" class="form-control" id="protein" name="protein" value="{{ recipe.protein }}"></div></div>
+            <div class="col-md-3"><div class="form-group"><label for="carbs">Kohlenhydrate (g)</label><input type="text" class="form-control" id="carbs" name="carbs" value="{{ recipe.carbs }}"></div></div>
+            <div class="col-md-3"><div class="form-group"><label for="fat">Fett (g)</label><input type="text" class="form-control" id="fat" name="fat" value="{{ recipe.fat }}"></div></div>
+        </div>
+        <hr>
+        
+        <!-- ... (Anleitung bleibt gleich) ... -->
+        <div class="form-group">
+            <label for="instructions">Anleitung</label>
+            <textarea class="form-control" id="instructions" name="instructions" rows="10" required>{{ recipe.instructions }}</textarea>
+        </div>
         
         <button type="submit" class="btn btn-primary mt-3">Änderungen speichern</button>
+        <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="btn btn-secondary mt-3">Abbrechen</a>
     </form>
 </div>
 {% endblock %}

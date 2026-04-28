@@ -3,11 +3,13 @@
 <div class="container mt-4">
     <h2>Neues Rezept hinzufügen</h2>
     <form method="POST" action="{{ url_for('add_recipe') }}" enctype="multipart/form-data">
+        <!-- ... (Rezeptname bleibt gleich) ... -->
         <div class="form-group">
             <label for="recipe_name">Rezeptname</label>
             <input type="text" class="form-control" id="recipe_name" name="recipe_name" required>
         </div>
 
+        <!-- ... (Portionen und Kategorie bleiben gleich) ... -->
         <div class="row">
             <div class="col-md-6">
                 <div class="form-group">
@@ -16,7 +18,6 @@
                 </div>
             </div>
             <div class="col-md-6">
-                <!-- VEREINFACHUNG: Dropdown für EINE Kategorie -->
                 <div class="form-group">
                     <label for="category_id">Kategorie</label>
                     <select class="form-control" id="category_id" name="category_id" required>
@@ -29,12 +30,22 @@
             </div>
         </div>
 
+        <hr>
+        <!-- NEU: Nährwertangaben -->
+        <h5>Nährwertangaben (optional, pro Portion)</h5>
+        <div class="row">
+            <div class="col-md-3"><div class="form-group"><label for="calories">Kalorien (kcal)</label><input type="text" class="form-control" id="calories" name="calories"></div></div>
+            <div class="col-md-3"><div class="form-group"><label for="protein">Eiweiß (g)</label><input type="text" class="form-control" id="protein" name="protein"></div></div>
+            <div class="col-md-3"><div class="form-group"><label for="carbs">Kohlenhydrate (g)</label><input type="text" class="form-control" id="carbs" name="carbs"></div></div>
+            <div class="col-md-3"><div class="form-group"><label for="fat">Fett (g)</label><input type="text" class="form-control" id="fat" name="fat"></div></div>
+        </div>
+        <hr>
+
+        <!-- ... (Bild-Upload, Zutaten, Anleitung bleiben gleich) ... -->
         <div class="form-group">
             <label for="image_file">Rezeptbild</label>
             <input type="file" class="form-control-file" id="image_file" name="image_file">
         </div>
-
-        <!-- Zutaten-Logik bleibt unverändert -->
         <div id="ingredients-container">
             <label>Zutaten</label>
             <div class="ingredient-row form-row mb-2">
@@ -44,7 +55,6 @@
             </div>
         </div>
         <button type="button" class="btn btn-secondary btn-sm mb-3" onclick="addIngredient()">Weitere Zutat</button>
-        
         <div class="form-group">
             <label for="instructions">Anleitung</label>
             <textarea class="form-control" id="instructions" name="instructions" rows="10" required></textarea>

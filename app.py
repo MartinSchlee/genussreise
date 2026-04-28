@@ -1,7 +1,10 @@
 import os
-import datetime # NEU
+import datetime
+# HIER IST DIE KORREKTUR: Wir importieren timezone explizit
+from datetime import timezone 
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import or_
 from flask_login import LoginManager, UserMixin, current_user, login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -9,7 +12,6 @@ from markupsafe import escape, Markup
 
 # --- 1. Konfiguration ---
 app = Flask(__name__)
-# ... (deine Konfiguration bleibt gleich) ...
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SECRET_KEY'] = 'dein_sehr_geheimer_schlüssel_hier'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'users.db')
@@ -19,14 +21,15 @@ app.config['ADMIN_USERNAMES'] = ['Martin']
 
 db = SQLAlchemy(app)
 
+# --- Context Processor ---
 @app.context_processor
 def inject_global_variables():
     categories = Category.query.order_by(Category.name).all()
-    # NEU: Die aktuelle Jahreszahl für alle Templates verfügbar machen
+    # Diese Zeile funktioniert jetzt dank des neuen Imports
     return dict(
         config=app.config, 
         all_categories=categories,
-        current_year=datetime.datetime.utcnow().year 
+        current_year=datetime.datetime.now(timezone.utc).year 
     )
 
 @app.template_filter('nl2br')
@@ -34,7 +37,6 @@ def nl2br_filter(s):
     return escape(s).replace('\n', Markup('<br>'))
 
 # --- 2. Datenbankmodelle ---
-# ... (alle Modelle bleiben unverändert) ...
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
@@ -53,9 +55,21 @@ class Recipe(db.Model):
     instructions = db.Column(db.Text, nullable=False)
     image_file = db.Column(db.String(100), nullable=False, default='default.jpg')
     servings = db.Column(db.String(50), nullable=True)
+    calories = db.Column(db.String(50), nullable=True)
+    protein = db.Column(db.String(50), nullable=True)
+    carbs = db.Column(db.String(50), nullable=True)
+    fat = db.Column(db.String(50), nullable=True)
+    rating_sum = db.Column(db.Integer, default=0)
+    rating_count = db.Column(db.Integer, default=0)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
     ingredients = db.relationship('Ingredient', backref='recipe', lazy=True, cascade="all, delete-orphan")
+
+    @property
+    def average_rating(self):
+        if self.rating_count == 0:
+            return 0
+        return round(self.rating_sum / self.rating_count, 1)
 
 class Ingredient(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -72,9 +86,7 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-
 # --- 3. Routen ---
-# ... (alle Routen bleiben unverändert) ...
 @app.route('/')
 def index():
     recipes = Recipe.query.order_by(Recipe.id.desc()).all()
@@ -90,6 +102,20 @@ def recipe_detail(recipe_id):
     recipe = Recipe.query.get_or_404(recipe_id)
     return render_template('recipe_detail.html', recipe=recipe)
 
+@app.route('/rate_recipe/<int:recipe_id>', methods=['POST'])
+@login_required
+def rate_recipe(recipe_id):
+    recipe = Recipe.query.get_or_404(recipe_id)
+    rating = int(request.form.get('rating'))
+    if 1 <= rating <= 5:
+        recipe.rating_sum += rating
+        recipe.rating_count += 1
+        db.session.commit()
+        flash('Vielen Dank für deine Bewertung!', 'success')
+    else:
+        flash('Ungültige Bewertung.', 'danger')
+    return redirect(url_for('recipe_detail', recipe_id=recipe_id))
+
 @app.route('/add_recipe', methods=['GET', 'POST'])
 @login_required
 def add_recipe():
@@ -99,24 +125,25 @@ def add_recipe():
         if not category_id:
             flash('Bitte wähle eine Kategorie aus.', 'danger')
             return render_template('add_recipe.html', categories=categories)
-
         image_filename = 'default.jpg'
         if 'image_file' in request.files:
             image_file = request.files['image_file']
             if image_file.filename != '':
                 image_filename = secure_filename(image_file.filename)
                 image_file.save(os.path.join(app.config['UPLOAD_FOLDER'], image_filename))
-
         new_recipe = Recipe(
             name=request.form.get('recipe_name'),
             instructions=request.form.get('instructions'),
             servings=request.form.get('servings'),
+            calories=request.form.get('calories'),
+            protein=request.form.get('protein'),
+            carbs=request.form.get('carbs'),
+            fat=request.form.get('fat'),
             image_file=image_filename,
             author=current_user,
             category_id=category_id
         )
         db.session.add(new_recipe)
-        
         ingredient_names = request.form.getlist('ingredient_name[]')
         quantities = request.form.getlist('quantity[]')
         units = request.form.getlist('unit[]')
@@ -124,11 +151,9 @@ def add_recipe():
             if ingredient_names[i]:
                 ingredient = Ingredient(name=ingredient_names[i], quantity=quantities[i], unit=units[i], recipe=new_recipe)
                 db.session.add(ingredient)
-        
         db.session.commit()
         flash('Rezept erfolgreich hinzugefügt!', 'success')
         return redirect(url_for('index'))
-    
     return render_template('add_recipe.html', categories=categories)
 
 @app.route('/edit_recipe/<int:recipe_id>', methods=['GET', 'POST'])
@@ -139,16 +164,18 @@ def edit_recipe(recipe_id):
     if recipe.author != current_user:
         flash('Du hast keine Berechtigung, dieses Rezept zu bearbeiten.', 'danger')
         return redirect(url_for('index'))
-    
     if request.method == 'POST':
         recipe.name = request.form.get('recipe_name')
         recipe.instructions = request.form.get('instructions')
         recipe.servings = request.form.get('servings')
         recipe.category_id = request.form.get('category_id')
+        recipe.calories = request.form.get('calories')
+        recipe.protein = request.form.get('protein')
+        recipe.carbs = request.form.get('carbs')
+        recipe.fat = request.form.get('fat')
         db.session.commit()
         flash('Rezept erfolgreich aktualisiert!', 'success')
         return redirect(url_for('recipe_detail', recipe_id=recipe.id))
-    
     return render_template('edit_recipe.html', recipe=recipe, categories=categories)
 
 @app.route('/delete_recipe/<int:recipe_id>', methods=['POST'])
@@ -163,10 +190,15 @@ def delete_recipe(recipe_id):
     flash('Rezept wurde gelöscht.', 'success')
     return redirect(url_for('index'))
 
-@app.route('/search', methods=['POST'])
+@app.route('/search')
 def search():
-    flash("Die Suchfunktion ist noch nicht implementiert.", "info")
-    return redirect(url_for('index'))
+    query = request.args.get('query')
+    if not query:
+        flash('Bitte gib einen Suchbegriff ein.', 'info')
+        return redirect(url_for('index'))
+    search_term = f"%{query}%"
+    results = Recipe.query.filter(or_(Recipe.name.ilike(search_term), Recipe.instructions.ilike(search_term))).all()
+    return render_template('search_results.html', recipes=results, query=query)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -208,7 +240,13 @@ def init_db():
     with app.app_context():
         db.create_all()
         if not Category.query.first():
-            default_categories = ['Frühstück', 'Hauptgericht', 'Dessert', 'Salat', 'Suppe', 'Italienisch', 'Asiatisch', 'Snack', 'Vegan', 'Vegetarisch']
+            default_categories = [
+                'Abendessen', 'Asiatisch', 'Auflauf', 'Backen', 'Dessert', 'Deutsch',
+                'Eintopf', 'Französisch', 'Frühstück', 'Gebäck', 'Getränke', 'Glutenfrei',
+                'Hauptgericht', 'Indisch', 'Italienisch', 'Kuchen', 'Low Carb', 'Mediterran',
+                'Mexikanisch', 'Mittagessen', 'Salat', 'Snack', 'Smoothie', 'Suppe', 'Vegan',
+                'Vegetarisch', 'Vorspeise'
+            ]
             for cat_name in default_categories:
                 db.session.add(Category(name=cat_name))
             db.session.commit()
