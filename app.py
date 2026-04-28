@@ -1,7 +1,9 @@
 import os
 import datetime
+import re # Modul für Regular Expressions
 from datetime import timezone
 from flask import Flask, render_template, request, redirect, url_for, flash
+# ... (alle anderen Imports bleiben gleich) ...
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import or_
 from flask_login import LoginManager, UserMixin, current_user, login_user, logout_user, login_required
@@ -12,6 +14,7 @@ from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 from flask_mail import Mail, Message
 
 # --- 1. Konfiguration ---
+# ... (bleibt unverändert) ...
 app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SECRET_KEY'] = 'dein_sehr_geheimer_schlüssel_hier'
@@ -22,14 +25,15 @@ app.config['ADMIN_USERNAMES'] = ['Martin']
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'deine.email@gmail.com'
-app.config['MAIL_PASSWORD'] = 'dein_app_passwort_hier'
-app.config['MAIL_DEFAULT_SENDER'] = ('Genussreise', 'deine.email@gmail.com')
+app.config['MAIL_USERNAME'] = 'fasi270669@gmail.com'
+app.config['MAIL_PASSWORD'] = 'wlqs fbtg fqqi uywd'
+app.config['MAIL_DEFAULT_SENDER'] = ('Genussreise', 'fasi270669@gmail.com')
 
 db = SQLAlchemy(app)
 mail = Mail(app)
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
+# ... (Kontextprozessoren und Filter bleiben gleich) ...
 @app.context_processor
 def inject_global_variables():
     categories = Category.query.order_by(Category.name).all()
@@ -43,8 +47,26 @@ def inject_global_variables():
 def nl2br_filter(s):
     return escape(s).replace('\n', Markup('<br>'))
 
+# --- HELFER-FUNKTION ZUR PASSWORT-PRÜFUNG ---
+def is_password_strong(password):
+    if len(password) < 10:
+        return False, "Das Passwort muss mindestens 10 Zeichen lang sein."
+    if not re.search(r"[a-z]", password):
+        return False, "Das Passwort muss mindestens einen Kleinbuchstaben enthalten."
+    if not re.search(r"[A-Z]", password):
+        return False, "Das Passwort muss mindestens einen Großbuchstaben enthalten."
+    if not re.search(r"[0-9]", password):
+        return False, "Das Passwort muss mindestens eine Ziffer enthalten."
+    
+    # KORRIGIERTE REGEL: \W findet jedes Zeichen, das kein Buchstabe oder eine Zahl ist.
+    if not re.search(r"[\W_]", password):
+        return False, "Das Passwort muss mindestens ein Sonderzeichen enthalten (z.B. -, _, !, #)."
+    
+    return True, ""
+
 
 # --- 2. Datenbankmodelle ---
+# ... (bleiben unverändert) ...
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
@@ -81,8 +103,7 @@ class Recipe(db.Model):
 
     @property
     def average_rating(self):
-        if self.rating_count == 0:
-            return 0
+        if self.rating_count == 0: return 0
         return round(self.rating_sum / self.rating_count, 1)
 
 class Ingredient(db.Model):
@@ -102,6 +123,7 @@ class Review(db.Model):
 
 
 # --- Login Manager ---
+# ... (bleibt unverändert) ...
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -109,8 +131,58 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-
 # --- 3. Routen ---
+# ... (alle Routen bleiben unverändert, außer register und reset_password) ...
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    if request.method == 'POST':
+        password = request.form.get('password')
+        is_strong, message = is_password_strong(password)
+        if not is_strong:
+            flash(message, 'danger')
+            return redirect(url_for('register'))
+        user_exists = User.query.filter_by(username=request.form.get('username')).first()
+        if user_exists:
+            flash('Benutzername bereits vergeben.', 'danger')
+            return redirect(url_for('register'))
+        hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+        new_user = User(username=request.form.get('username'), email=request.form.get('email'), password=hashed_password)
+        db.session.add(new_user)
+        db.session.commit()
+        flash('Dein Account wurde erstellt! Du kannst dich jetzt einloggen.', 'success')
+        return redirect(url_for('login'))
+    return render_template('register.html')
+
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    try:
+        email = s.loads(token, salt='email-confirm', max_age=1800)
+    except SignatureExpired:
+        flash('Der Link zum Zurücksetzen des Passworts ist abgelaufen.', 'danger')
+        return redirect(url_for('forgot_password'))
+    except:
+        flash('Der Link zum Zurücksetzen des Passworts ist ungültig.', 'danger')
+        return redirect(url_for('forgot_password'))
+    if request.method == 'POST':
+        password = request.form.get('password')
+        is_strong, message = is_password_strong(password)
+        if not is_strong:
+            flash(message, 'danger')
+            return render_template('reset_password.html', token=token)
+        user = User.query.filter_by(email=email).first()
+        if user:
+            user.password = generate_password_hash(password, method='pbkdf2:sha256')
+            db.session.commit()
+            flash('Dein Passwort wurde erfolgreich zurückgesetzt! Du kannst dich jetzt einloggen.', 'success')
+            return redirect(url_for('login'))
+        else:
+            flash('Benutzer nicht gefunden.', 'danger')
+            return redirect(url_for('login'))
+    return render_template('reset_password.html', token=token)
+
+# --- (Alle anderen Routen bleiben unverändert) ---
 @app.route('/')
 def index():
     recipes = Recipe.query.order_by(Recipe.id.desc()).all()
@@ -167,7 +239,6 @@ def add_recipe():
         flash('Rezept erfolgreich hinzugefügt!', 'success')
         return redirect(url_for('index'))
     return render_template('add_recipe.html', categories=categories)
-
 
 @app.route('/edit_recipe/<int:recipe_id>', methods=['GET', 'POST'])
 @login_required
@@ -268,29 +339,6 @@ def forgot_password():
         return redirect(url_for('login'))
     return render_template('forgot_password.html')
 
-@app.route('/reset-password/<token>', methods=['GET', 'POST'])
-def reset_password(token):
-    try:
-        email = s.loads(token, salt='email-confirm', max_age=1800)
-    except SignatureExpired:
-        flash('Der Link zum Zurücksetzen des Passworts ist abgelaufen.', 'danger')
-        return redirect(url_for('forgot_password'))
-    except:
-        flash('Der Link zum Zurücksetzen des Passworts ist ungültig.', 'danger')
-        return redirect(url_for('forgot_password'))
-    if request.method == 'POST':
-        password = request.form.get('password')
-        user = User.query.filter_by(email=email).first()
-        if user:
-            user.password = generate_password_hash(password, method='pbkdf2:sha256')
-            db.session.commit()
-            flash('Dein Passwort wurde erfolgreich zurückgesetzt! Du kannst dich jetzt einloggen.', 'success')
-            return redirect(url_for('login'))
-        else:
-            flash('Benutzer nicht gefunden.', 'danger')
-            return redirect(url_for('login'))
-    return render_template('reset_password.html', token=token)
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -303,29 +351,13 @@ def login():
         flash('Login fehlgeschlagen. Überprüfe Benutzername und Passwort.', 'danger')
     return render_template('login.html')
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-    if request.method == 'POST':
-        user_exists = User.query.filter_by(username=request.form.get('username')).first()
-        if user_exists:
-            flash('Benutzername bereits vergeben.', 'danger')
-            return redirect(url_for('register'))
-        hashed_password = generate_password_hash(request.form.get('password'), method='pbkdf2:sha256')
-        new_user = User(username=request.form.get('username'), email=request.form.get('email'), password=hashed_password)
-        db.session.add(new_user)
-        db.session.commit()
-        flash('Dein Account wurde erstellt! Du kannst dich jetzt einloggen.', 'success')
-        return redirect(url_for('login'))
-    return render_template('register.html')
-
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('index'))
 
+# --- DB-Initialisierung und Serverstart ---
 def init_db():
     with app.app_context():
         db.create_all()
