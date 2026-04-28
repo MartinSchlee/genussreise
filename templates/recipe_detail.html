@@ -1,61 +1,144 @@
 {% extends "base.html" %}
-{% block content %}
-<div class="container mt-4">
-    <div class="row">
-        <div class="col-md-8">
-            <h1>{{ recipe.name }}</h1>
-            
-            <!-- NEU: Stern-Anzeige -->
-            <div class="d-flex align-items-center mb-2">
-                <div class="rating-stars mr-2">
-                    {% for i in range(5) %}
-                        <i class="{% if i < recipe.average_rating %}fas fa-star{% else %}far fa-star{% endif %}"></i>
-                    {% endfor %}
-                </div>
-                <span class="text-muted">({{ recipe.average_rating }} / 5 aus {{ recipe.rating_count }} Bewertungen)</span>
-            </div>
 
-            <div class="d-flex align-items-center mb-2">
-                {% if recipe.category %}<a href="{{ url_for('recipes_in_category', category_id=recipe.category.id) }}" class="badge badge-info mr-3">{{ recipe.category.name }}</a>{% endif %}
-                <span class="text-muted">{% if recipe.servings %}Für {{ recipe.servings }}{% endif %}</span>
+{% block content %}
+<div class="row">
+    <!-- Rezept-Details (linke Spalte auf großen Bildschirmen) -->
+    <div class="col-lg-8">
+        <h2 class="mb-3">{{ recipe.name }}</h2>
+        <div class="d-flex align-items-center mb-3 text-muted">
+            <span class="mr-4">Von: {{ recipe.author.username }}</span>
+            <div class="rating-stars">
+                {% for i in range(5) %}
+                    <i class="{% if i < recipe.average_rating %}fas fa-star{% else %}far fa-star{% endif %}"></i>
+                {% endfor %}
+                <small class="ml-1">({{ recipe.rating_count }} Bewertung{{ 'en' if recipe.rating_count != 1 }})</small>
             </div>
-            <p><small class="text-muted">Von: {{ recipe.author.username }}</small></p>
-            <hr>
-            <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" class="img-fluid rounded mb-4" alt="{{ recipe.name }}">
-            
-            <h3>Anleitung</h3>
+        </div>
+        <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" class="img-fluid rounded mb-4" alt="{{ recipe.name }}">
+        
+        <div class="mb-4">
+            <h5>Zubereitung</h5>
             <p>{{ recipe.instructions | nl2br }}</p>
         </div>
-        <div class="col-md-4">
-            <!-- NEU: Bewertungs-Formular -->
-            {% if current_user.is_authenticated %}
-                <div class="card mb-4">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">Bewerte dieses Rezept!</h5>
-                        <form action="{{ url_for('rate_recipe', recipe_id=recipe.id) }}" method="POST" class="rating-form-stars">
-                            <button type="submit" name="rating" value="1"><i class="fas fa-star"></i></button>
-                            <button type="submit" name="rating" value="2"><i class="fas fa-star"></i></button>
-                            <button type="submit" name="rating" value="3"><i class="fas fa-star"></i></button>
-                            <button type="submit" name="rating" value="4"><i class="fas fa-star"></i></button>
-                            <button type="submit" name="rating" value="5"><i class="fas fa-star"></i></button>
-                        </form>
-                    </div>
-                </div>
-            {% endif %}
+    </div>
 
-            <div class="card mb-4">
-                <div class="card-header">Zutaten</div>
-                <ul class="list-group list-group-flush">
-                    {% for ingredient in recipe.ingredients %}
-                        <li class="list-group-item">{{ ingredient.quantity }} {{ ingredient.unit }} {{ ingredient.name }}</li>
-                    {% else %}
-                        <li class="list-group-item">Keine Zutaten angegeben.</li>
-                    {% endfor %}
-                </ul>
+    <!-- Zutaten und Nährwerte (rechte Spalte auf großen Bildschirmen) -->
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                Zutaten
             </div>
-
-            <!-- ... (Nährwert-Tabelle bleibt gleich) ... -->
+            <ul class="list-group list-group-flush">
+                {% for ingredient in recipe.ingredients %}
+                    <li class="list-group-item">{{ ingredient.quantity }} {{ ingredient.unit }} {{ ingredient.name }}</li>
+                {% else %}
+                    <li class="list-group-item">Keine Zutaten angegeben.</li>
+                {% endfor %}
+            </ul>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                Nährwerte (pro Portion)
+            </div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item">Portionen: {{ recipe.servings or 'k.A.' }}</li>
+                <li class="list-group-item">Kalorien: {{ recipe.calories or 'k.A.' }}</li>
+                <li class="list-group-item">Protein: {{ recipe.protein or 'k.A.' }}</li>
+                <li class="list-group-item">Kohlenhydrate: {{ recipe.carbs or 'k.A.' }}</li>
+                <li class="list-group-item">Fett: {{ recipe.fat or 'k.A.' }}</li>
+            </ul>
         </div>
     </div>
 </div>
+
+<hr class="my-5">
+
+<!-- Bewertungs-Sektion -->
+<div class="row">
+    <div class="col-lg-8">
+        <h4>Bewerte dieses Rezept</h4>
+        {% if current_user.is_authenticated %}
+            {% if not recipe.reviews|selectattr('user_id', 'equalto', current_user.id)|first %}
+                <form action="{{ url_for('rate_recipe', recipe_id=recipe.id) }}" method="POST">
+                    <div class="form-group">
+                        <label>Deine Sternebewertung:</label>
+                        <div class="rating-form-stars">
+                            <input type="hidden" name="rating" id="rating-value" required>
+                            <button type="button" class="star" data-value="1"><i class="far fa-star"></i></button>
+                            <button type="button" class="star" data-value="2"><i class="far fa-star"></i></button>
+                            <button type="button" class="star" data-value="3"><i class="far fa-star"></i></button>
+                            <button type="button" class="star" data-value="4"><i class="far fa-star"></i></button>
+                            <button type="button" class="star" data-value="5"><i class="far fa-star"></i></button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="comment">Dein Kommentar (optional):</label>
+                        <textarea class="form-control" name="comment" id="comment" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Bewertung abgeben</button>
+                </form>
+            {% else %}
+                <div class="alert alert-info">Du hast dieses Rezept bereits bewertet.</div>
+            {% endif %}
+        {% else %}
+            <div class="alert alert-secondary">
+                <a href="{{ url_for('login', next=request.url) }}">Melde dich an</a>, um dieses Rezept zu bewerten.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<hr class="my-5">
+
+<!-- Liste der Bewertungen -->
+<div class="row">
+    <div class="col-lg-8">
+        <h4>Was andere sagen ({{ recipe.reviews|length }})</h4>
+        {% for review in recipe.reviews|sort(attribute='timestamp', reverse=True) %}
+            <div class="media mt-4">
+                <div class="media-body">
+                    <h5 class="mt-0">{{ review.reviewer.username }} 
+                        <small class="text-muted ml-2">{{ review.timestamp.strftime('%d.%m.%Y') }}</small>
+                    </h5>
+                    <div class="rating-stars mb-2">
+                        {% for i in range(5) %}
+                            <i class="{% if i < review.rating %}fas fa-star{% else %}far fa-star{% endif %}"></i>
+                        {% endfor %}
+                    </div>
+                    <p>{{ review.text }}</p>
+                </div>
+            </div>
+        {% else %}
+            <p class="text-muted mt-3">Für dieses Rezept gibt es noch keine Bewertungen.</p>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- JavaScript für die interaktiven Sterne -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const stars = document.querySelectorAll('.rating-form-stars .star');
+    const ratingInput = document.getElementById('rating-value');
+
+    stars.forEach(star => {
+        star.addEventListener('click', function() {
+            const value = this.dataset.value;
+            ratingInput.value = value;
+            
+            stars.forEach(s => {
+                const icon = s.querySelector('i');
+                if (s.dataset.value <= value) {
+                    icon.classList.remove('far');
+                    icon.classList.add('fas');
+                } else {
+                    icon.classList.remove('fas');
+                    icon.classList.add('far');
+                }
+            });
+        });
+    });
+});
+</script>
+
 {% endblock %}

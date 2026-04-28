@@ -8,31 +8,27 @@ from flask_login import LoginManager, UserMixin, current_user, login_user, logou
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from markupsafe import escape, Markup
-from itsdangerous import URLSafeTimedSerializer, SignatureExpired # NEU für Tokens
-from flask_mail import Mail, Message # NEU für E-Mails
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired
+from flask_mail import Mail, Message
 
 # --- 1. Konfiguration ---
 app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SECRET_KEY'] = 'dein_sehr_geheimer_schlüssel_hier' # Dieser Schlüssel wird auch für die Tokens verwendet!
+app.config['SECRET_KEY'] = 'dein_sehr_geheimer_schlüssel_hier'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'users.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join(basedir, 'static', 'uploads')
 app.config['ADMIN_USERNAMES'] = ['Martin'] 
-
-# NEU: E-Mail Konfiguration
-# ACHTUNG: Passwörter niemals so direkt in den Code schreiben in einem echten Projekt!
-# Besser: Umgebungsvariablen (os.environ.get('MAIL_PASSWORD'))
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'fasi270669@gmail.com'  # <-- DEINE GMAIL-ADRESSE HIER
-app.config['MAIL_PASSWORD'] = 'wlqs fbtg fqqi uywd' # <-- DEIN 16-STELLIGES APP-PASSWORT HIER
-app.config['MAIL_DEFAULT_SENDER'] = ('Genussreise', 'deine.email@gmail.com') # Angezeigter Name und E-Mail
+app.config['MAIL_USERNAME'] = 'fasi270669@gmail.com'
+app.config['MAIL_PASSWORD'] = 'wlqs fbtg fqqi uywd'
+app.config['MAIL_DEFAULT_SENDER'] = ('Genussreise', 'deine.email@gmail.com')
 
 db = SQLAlchemy(app)
-mail = Mail(app) # NEU: Mail-Objekt initialisieren
-s = URLSafeTimedSerializer(app.config['SECRET_KEY']) # NEU: Token-Serializer initialisieren
+mail = Mail(app)
+s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
 # ... (Context Processor und Filter bleiben gleich) ...
 @app.context_processor
@@ -50,13 +46,13 @@ def nl2br_filter(s):
 
 
 # --- 2. Datenbankmodelle ---
-# ... (alle Modelle bleiben unverändert) ...
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
-    recipes = db.relationship('Recipe', backref='author', lazy=True)
+    recipes = db.relationship('Recipe', backref='author', lazy=True, cascade="all, delete-orphan")
+    reviews = db.relationship('Review', backref='reviewer', lazy=True, cascade="all, delete-orphan") # NEUE BEZIEHUNG
 
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -66,6 +62,7 @@ class Category(db.Model):
 class Recipe(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
+    # ... (alle anderen Spalten bleiben gleich) ...
     instructions = db.Column(db.Text, nullable=False)
     image_file = db.Column(db.String(100), nullable=False, default='default.jpg')
     servings = db.Column(db.String(50), nullable=True)
@@ -78,6 +75,7 @@ class Recipe(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
     ingredients = db.relationship('Ingredient', backref='recipe', lazy=True, cascade="all, delete-orphan")
+    reviews = db.relationship('Review', backref='recipe', lazy=True, cascade="all, delete-orphan") # NEUE BEZIEHUNG
 
     @property
     def average_rating(self):
@@ -93,6 +91,16 @@ class Ingredient(db.Model):
     recipe_id = db.Column(db.Integer, db.ForeignKey('recipe.id'), nullable=False)
 
 
+# NEUES MODELL: Review
+class Review(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    rating = db.Column(db.Integer, nullable=False)
+    text = db.Column(db.Text, nullable=True)
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.datetime.now(timezone.utc))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    recipe_id = db.Column(db.Integer, db.ForeignKey('recipe.id'), nullable=False)
+
+
 # --- Login Manager ---
 # ... (bleibt unverändert) ...
 login_manager = LoginManager()
@@ -104,7 +112,44 @@ def load_user(user_id):
 
 
 # --- 3. Routen ---
-# ... (alle bisherigen Routen bleiben unverändert) ...
+# ... (alle anderen Routen bleiben unverändert, außer rate_recipe) ...
+
+@app.route('/rate_recipe/<int:recipe_id>', methods=['POST'])
+@login_required
+def rate_recipe(recipe_id):
+    recipe = Recipe.query.get_or_404(recipe_id)
+    rating = int(request.form.get('rating'))
+    comment = request.form.get('comment') # NEU: Kommentar abrufen
+
+    # Überprüfen, ob der Nutzer bereits eine Bewertung für dieses Rezept abgegeben hat
+    existing_review = Review.query.filter_by(reviewer=current_user, recipe=recipe).first()
+    if existing_review:
+        flash('Du hast dieses Rezept bereits bewertet.', 'warning')
+        return redirect(url_for('recipe_detail', recipe_id=recipe_id))
+
+    if 1 <= rating <= 5:
+        # Neue individuelle Bewertung erstellen und speichern
+        new_review = Review(
+            rating=rating,
+            text=comment,
+            reviewer=current_user,
+            recipe=recipe
+        )
+        db.session.add(new_review)
+        
+        # Aggregierte Bewertung im Rezept-Objekt aktualisieren
+        recipe.rating_sum += rating
+        recipe.rating_count += 1
+        
+        db.session.commit()
+        flash('Vielen Dank für deine Bewertung!', 'success')
+    else:
+        flash('Ungültige Bewertung.', 'danger')
+        
+    return redirect(url_for('recipe_detail', recipe_id=recipe_id))
+
+# Hier folgen alle anderen Routen (index, recipe_detail, etc.), die unverändert bleiben
+# ... (der Code ist identisch zum vorherigen Stand) ...
 @app.route('/')
 def index():
     recipes = Recipe.query.order_by(Recipe.id.desc()).all()
@@ -119,20 +164,6 @@ def recipes_in_category(category_id):
 def recipe_detail(recipe_id):
     recipe = Recipe.query.get_or_404(recipe_id)
     return render_template('recipe_detail.html', recipe=recipe)
-
-@app.route('/rate_recipe/<int:recipe_id>', methods=['POST'])
-@login_required
-def rate_recipe(recipe_id):
-    recipe = Recipe.query.get_or_404(recipe_id)
-    rating = int(request.form.get('rating'))
-    if 1 <= rating <= 5:
-        recipe.rating_sum += rating
-        recipe.rating_count += 1
-        db.session.commit()
-        flash('Vielen Dank für deine Bewertung!', 'success')
-    else:
-        flash('Ungültige Bewertung.', 'danger')
-    return redirect(url_for('recipe_detail', recipe_id=recipe_id))
 
 @app.route('/add_recipe', methods=['GET', 'POST'])
 @login_required
@@ -218,8 +249,6 @@ def search():
     results = Recipe.query.filter(or_(Recipe.name.ilike(search_term), Recipe.instructions.ilike(search_term))).all()
     return render_template('search_results.html', recipes=results, query=query)
 
-
-# NEUE ROUTEN FÜR PASSWORT-RESET
 @app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
@@ -228,11 +257,8 @@ def forgot_password():
         if user:
             token = s.dumps(email, salt='email-confirm')
             link = url_for('reset_password', token=token, _external=True)
-            
-            # Erstelle die E-Mail
             msg = Message('Dein Link zum Zurücksetzen des Passworts', recipients=[email])
             msg.body = f'Hallo {user.username},\n\nklicke auf den folgenden Link, um dein Passwort zurückzusetzen: {link}\n\nWenn du diese Anfrage nicht gestellt hast, ignoriere diese E-Mail bitte.\n\nDein Genussreise-Team'
-            
             try:
                 mail.send(msg)
                 flash('Ein Link zum Zurücksetzen des Passworts wurde an deine E-Mail-Adresse gesendet.', 'success')
@@ -246,7 +272,6 @@ def forgot_password():
 @app.route('/reset-password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     try:
-        # Token verifizieren (max. Alter: 1800s = 30 Minuten)
         email = s.loads(token, salt='email-confirm', max_age=1800)
     except SignatureExpired:
         flash('Der Link zum Zurücksetzen des Passworts ist abgelaufen.', 'danger')
@@ -254,7 +279,6 @@ def reset_password(token):
     except:
         flash('Der Link zum Zurücksetzen des Passworts ist ungültig.', 'danger')
         return redirect(url_for('forgot_password'))
-
     if request.method == 'POST':
         password = request.form.get('password')
         user = User.query.filter_by(email=email).first()
@@ -266,9 +290,7 @@ def reset_password(token):
         else:
             flash('Benutzer nicht gefunden.', 'danger')
             return redirect(url_for('login'))
-
     return render_template('reset_password.html', token=token)
-
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -310,13 +332,7 @@ def init_db():
     with app.app_context():
         db.create_all()
         if not Category.query.first():
-            default_categories = [
-                'Abendessen', 'Asiatisch', 'Auflauf', 'Backen', 'Dessert', 'Deutsch',
-                'Eintopf', 'Französisch', 'Frühstück', 'Gebäck', 'Getränke', 'Glutenfrei',
-                'Hauptgericht', 'Indisch', 'Italienisch', 'Kuchen', 'Low Carb', 'Mediterran',
-                'Mexikanisch', 'Mittagessen', 'Salat', 'Snack', 'Smoothie', 'Suppe', 'Vegan',
-                'Vegetarisch', 'Vorspeise'
-            ]
+            default_categories = ['Abendessen', 'Asiatisch', 'Auflauf', 'Backen', 'Dessert', 'Deutsch', 'Eintopf', 'Französisch', 'Frühstück', 'Gebäck', 'Getränke', 'Glutenfrei', 'Hauptgericht', 'Indisch', 'Italienisch', 'Kuchen', 'Low Carb', 'Mediterran', 'Mexikanisch', 'Mittagessen', 'Salat', 'Snack', 'Smoothie', 'Suppe', 'Vegan', 'Vegetarisch', 'Vorspeise']
             for cat_name in default_categories:
                 db.session.add(Category(name=cat_name))
             db.session.commit()
@@ -324,3 +340,4 @@ def init_db():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True)
+
