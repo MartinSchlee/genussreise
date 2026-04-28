@@ -1,9 +1,8 @@
 import os
 import datetime
-import re # Modul für Regular Expressions
+import re
 from datetime import timezone
 from flask import Flask, render_template, request, redirect, url_for, flash
-# ... (alle anderen Imports bleiben gleich) ...
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import or_
 from flask_login import LoginManager, UserMixin, current_user, login_user, logout_user, login_required
@@ -14,7 +13,6 @@ from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 from flask_mail import Mail, Message
 
 # --- 1. Konfiguration ---
-# ... (bleibt unverändert) ...
 app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SECRET_KEY'] = 'dein_sehr_geheimer_schlüssel_hier'
@@ -25,48 +23,16 @@ app.config['ADMIN_USERNAMES'] = ['Martin']
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'fasi270669@gmail.com'
-app.config['MAIL_PASSWORD'] = 'wlqs fbtg fqqi uywd'
-app.config['MAIL_DEFAULT_SENDER'] = ('Genussreise', 'fasi270669@gmail.com')
+app.config['MAIL_USERNAME'] = 'deine.email@gmail.com'
+app.config['MAIL_PASSWORD'] = 'dein_app_passwort_hier'
+app.config['MAIL_DEFAULT_SENDER'] = ('Genussreise', 'deine.email@gmail.com')
 
 db = SQLAlchemy(app)
 mail = Mail(app)
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
-# ... (Kontextprozessoren und Filter bleiben gleich) ...
-@app.context_processor
-def inject_global_variables():
-    categories = Category.query.order_by(Category.name).all()
-    return dict(
-        config=app.config, 
-        all_categories=categories,
-        current_year=datetime.datetime.now(timezone.utc).year 
-    )
 
-@app.template_filter('nl2br')
-def nl2br_filter(s):
-    return escape(s).replace('\n', Markup('<br>'))
-
-# --- HELFER-FUNKTION ZUR PASSWORT-PRÜFUNG ---
-def is_password_strong(password):
-    if len(password) < 10:
-        return False, "Das Passwort muss mindestens 10 Zeichen lang sein."
-    if not re.search(r"[a-z]", password):
-        return False, "Das Passwort muss mindestens einen Kleinbuchstaben enthalten."
-    if not re.search(r"[A-Z]", password):
-        return False, "Das Passwort muss mindestens einen Großbuchstaben enthalten."
-    if not re.search(r"[0-9]", password):
-        return False, "Das Passwort muss mindestens eine Ziffer enthalten."
-    
-    # KORRIGIERTE REGEL: \W findet jedes Zeichen, das kein Buchstabe oder eine Zahl ist.
-    if not re.search(r"[\W_]", password):
-        return False, "Das Passwort muss mindestens ein Sonderzeichen enthalten (z.B. -, _, !, #)."
-    
-    return True, ""
-
-
-# --- 2. Datenbankmodelle ---
-# ... (bleiben unverändert) ...
+# --- 2. Datenbankmodelle --- (NACH OBEN VERSCHOBEN)
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
@@ -122,8 +88,7 @@ class Review(db.Model):
     recipe_id = db.Column(db.Integer, db.ForeignKey('recipe.id'), nullable=False)
 
 
-# --- Login Manager ---
-# ... (bleibt unverändert) ...
+# --- 3. Login Manager & Hilfsfunktionen ---
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -131,58 +96,26 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# --- 3. Routen ---
-# ... (alle Routen bleiben unverändert, außer register und reset_password) ...
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-    if request.method == 'POST':
-        password = request.form.get('password')
-        is_strong, message = is_password_strong(password)
-        if not is_strong:
-            flash(message, 'danger')
-            return redirect(url_for('register'))
-        user_exists = User.query.filter_by(username=request.form.get('username')).first()
-        if user_exists:
-            flash('Benutzername bereits vergeben.', 'danger')
-            return redirect(url_for('register'))
-        hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
-        new_user = User(username=request.form.get('username'), email=request.form.get('email'), password=hashed_password)
-        db.session.add(new_user)
-        db.session.commit()
-        flash('Dein Account wurde erstellt! Du kannst dich jetzt einloggen.', 'success')
-        return redirect(url_for('login'))
-    return render_template('register.html')
+@app.context_processor
+def inject_global_variables():
+    # Jetzt ist 'Category' definiert und dieser Aufruf ist gültig
+    categories = Category.query.order_by(Category.name).all()
+    return dict(config=app.config, all_categories=categories, current_year=datetime.datetime.now(timezone.utc).year)
 
-@app.route('/reset-password/<token>', methods=['GET', 'POST'])
-def reset_password(token):
-    try:
-        email = s.loads(token, salt='email-confirm', max_age=1800)
-    except SignatureExpired:
-        flash('Der Link zum Zurücksetzen des Passworts ist abgelaufen.', 'danger')
-        return redirect(url_for('forgot_password'))
-    except:
-        flash('Der Link zum Zurücksetzen des Passworts ist ungültig.', 'danger')
-        return redirect(url_for('forgot_password'))
-    if request.method == 'POST':
-        password = request.form.get('password')
-        is_strong, message = is_password_strong(password)
-        if not is_strong:
-            flash(message, 'danger')
-            return render_template('reset_password.html', token=token)
-        user = User.query.filter_by(email=email).first()
-        if user:
-            user.password = generate_password_hash(password, method='pbkdf2:sha256')
-            db.session.commit()
-            flash('Dein Passwort wurde erfolgreich zurückgesetzt! Du kannst dich jetzt einloggen.', 'success')
-            return redirect(url_for('login'))
-        else:
-            flash('Benutzer nicht gefunden.', 'danger')
-            return redirect(url_for('login'))
-    return render_template('reset_password.html', token=token)
+@app.template_filter('nl2br')
+def nl2br_filter(s):
+    return escape(s).replace('\n', Markup('<br>'))
 
-# --- (Alle anderen Routen bleiben unverändert) ---
+def is_password_strong(password):
+    if len(password) < 10: return False, "Das Passwort muss mindestens 10 Zeichen lang sein."
+    if not re.search(r"[a-z]", password): return False, "Das Passwort muss mindestens einen Kleinbuchstaben enthalten."
+    if not re.search(r"[A-Z]", password): return False, "Das Passwort muss mindestens einen Großbuchstaben enthalten."
+    if not re.search(r"[0-9]", password): return False, "Das Passwort muss mindestens eine Ziffer enthalten."
+    if not re.search(r"[\W_]", password): return False, "Das Passwort muss mindestens ein Sonderzeichen enthalten (z.B. -, _, !, #)."
+    return True, ""
+
+
+# --- 4. Routen ---
 @app.route('/')
 def index():
     recipes = Recipe.query.order_by(Recipe.id.desc()).all()
@@ -203,22 +136,7 @@ def recipe_detail(recipe_id):
 def add_recipe():
     categories = Category.query.order_by(Category.name).all()
     if request.method == 'POST':
-        new_recipe = Recipe(
-            name=request.form.get('recipe_name'),
-            instructions=request.form.get('instructions'),
-            prep_time=request.form.get('prep_time'),
-            cook_time=request.form.get('cook_time'),
-            rest_time=request.form.get('rest_time'),
-            total_time=request.form.get('total_time'),
-            servings=request.form.get('servings'),
-            calories=request.form.get('calories'),
-            protein=request.form.get('protein'),
-            carbs=request.form.get('carbs'),
-            fat=request.form.get('fat'),
-            image_file='default.jpg',
-            author=current_user,
-            category_id=request.form.get('category_id')
-        )
+        new_recipe = Recipe(name=request.form.get('recipe_name'), instructions=request.form.get('instructions'), prep_time=request.form.get('prep_time'), cook_time=request.form.get('cook_time'), rest_time=request.form.get('rest_time'), total_time=request.form.get('total_time'), servings=request.form.get('servings'), calories=request.form.get('calories'), protein=request.form.get('protein'), carbs=request.form.get('carbs'), fat=request.form.get('fat'), image_file='default.jpg', author=current_user, category_id=request.form.get('category_id'))
         if 'image_file' in request.files:
             image_file = request.files['image_file']
             if image_file.filename != '':
@@ -226,15 +144,12 @@ def add_recipe():
                 image_file.save(os.path.join(app.config['UPLOAD_FOLDER'], image_filename))
                 new_recipe.image_file = image_filename
         db.session.add(new_recipe)
-        
         ingredient_names = request.form.getlist('ingredient_name[]')
         quantities = request.form.getlist('quantity[]')
         units = request.form.getlist('unit[]')
         for i in range(len(ingredient_names)):
             if ingredient_names[i]:
-                ingredient = Ingredient(name=ingredient_names[i], quantity=quantities[i], unit=units[i], recipe=new_recipe)
-                db.session.add(ingredient)
-        
+                db.session.add(Ingredient(name=ingredient_names[i], quantity=quantities[i], unit=units[i], recipe=new_recipe))
         db.session.commit()
         flash('Rezept erfolgreich hinzugefügt!', 'success')
         return redirect(url_for('index'))
@@ -245,32 +160,18 @@ def add_recipe():
 def edit_recipe(recipe_id):
     recipe = Recipe.query.get_or_404(recipe_id)
     categories = Category.query.order_by(Category.name).all()
-    if recipe.author != current_user:
+    if recipe.author != current_user and current_user.username not in app.config['ADMIN_USERNAMES']:
         flash('Du hast keine Berechtigung, dieses Rezept zu bearbeiten.', 'danger')
         return redirect(url_for('index'))
     if request.method == 'POST':
-        recipe.name = request.form.get('recipe_name')
-        recipe.instructions = request.form.get('instructions')
-        recipe.prep_time = request.form.get('prep_time')
-        recipe.cook_time = request.form.get('cook_time')
-        recipe.rest_time = request.form.get('rest_time')
-        recipe.total_time = request.form.get('total_time')
-        recipe.servings = request.form.get('servings')
-        recipe.category_id = request.form.get('category_id')
-        recipe.calories = request.form.get('calories')
-        recipe.protein = request.form.get('protein')
-        recipe.carbs = request.form.get('carbs')
-        recipe.fat = request.form.get('fat')
-
+        recipe.name, recipe.instructions, recipe.prep_time, recipe.cook_time, recipe.rest_time, recipe.total_time, recipe.servings, recipe.category_id, recipe.calories, recipe.protein, recipe.carbs, recipe.fat = request.form.get('recipe_name'), request.form.get('instructions'), request.form.get('prep_time'), request.form.get('cook_time'), request.form.get('rest_time'), request.form.get('total_time'), request.form.get('servings'), request.form.get('category_id'), request.form.get('calories'), request.form.get('protein'), request.form.get('carbs'), request.form.get('fat')
         Ingredient.query.filter_by(recipe_id=recipe.id).delete()
         ingredient_names = request.form.getlist('ingredient_name[]')
         quantities = request.form.getlist('quantity[]')
         units = request.form.getlist('unit[]')
         for i in range(len(ingredient_names)):
             if ingredient_names[i]:
-                ingredient = Ingredient(name=ingredient_names[i], quantity=quantities[i], unit=units[i], recipe=recipe)
-                db.session.add(ingredient)
-
+                db.session.add(Ingredient(name=ingredient_names[i], quantity=quantities[i], unit=units[i], recipe=recipe))
         db.session.commit()
         flash('Rezept erfolgreich aktualisiert!', 'success')
         return redirect(url_for('recipe_detail', recipe_id=recipe.id))
@@ -280,19 +181,18 @@ def edit_recipe(recipe_id):
 @login_required
 def delete_recipe(recipe_id):
     recipe = Recipe.query.get_or_404(recipe_id)
-    if recipe.author != current_user and current_user.username not in app.config['ADMIN_USERNAMES']:
-        flash('Du hast keine Berechtigung, dieses Rezept zu löschen.', 'danger')
-        return redirect(url_for('index'))
+    if current_user.username not in app.config['ADMIN_USERNAMES']:
+        flash('Nur Administratoren können Rezepte löschen.', 'danger')
+        return redirect(url_for('recipe_detail', recipe_id=recipe.id))
     db.session.delete(recipe)
     db.session.commit()
-    flash('Rezept wurde gelöscht.', 'success')
+    flash('Rezept wurde vom Administrator gelöscht.', 'success')
     return redirect(url_for('index'))
 
 @app.route('/search')
 def search():
     query = request.args.get('query')
     if not query:
-        flash('Bitte gib einen Suchbegriff ein.', 'info')
         return redirect(url_for('index'))
     search_term = f"%{query}%"
     results = Recipe.query.filter(or_(Recipe.name.ilike(search_term), Recipe.instructions.ilike(search_term))).all()
@@ -302,33 +202,27 @@ def search():
 @login_required
 def rate_recipe(recipe_id):
     recipe = Recipe.query.get_or_404(recipe_id)
-    rating = int(request.form.get('rating'))
-    comment = request.form.get('comment')
-    existing_review = Review.query.filter_by(reviewer=current_user, recipe=recipe).first()
-    if existing_review:
+    rating, comment = int(request.form.get('rating')), request.form.get('comment')
+    if Review.query.filter_by(reviewer=current_user, recipe=recipe).first():
         flash('Du hast dieses Rezept bereits bewertet.', 'warning')
         return redirect(url_for('recipe_detail', recipe_id=recipe_id))
     if 1 <= rating <= 5:
-        new_review = Review(rating=rating, text=comment, reviewer=current_user, recipe=recipe)
-        db.session.add(new_review)
+        db.session.add(Review(rating=rating, text=comment, reviewer=current_user, recipe=recipe))
         recipe.rating_sum += rating
         recipe.rating_count += 1
         db.session.commit()
         flash('Vielen Dank für deine Bewertung!', 'success')
-    else:
-        flash('Ungültige Bewertung.', 'danger')
     return redirect(url_for('recipe_detail', recipe_id=recipe_id))
 
 @app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
-        email = request.form.get('email')
-        user = User.query.filter_by(email=email).first()
+        user = User.query.filter_by(email=request.form.get('email')).first()
         if user:
-            token = s.dumps(email, salt='email-confirm')
+            token = s.dumps(user.email, salt='email-confirm')
             link = url_for('reset_password', token=token, _external=True)
-            msg = Message('Dein Link zum Zurücksetzen des Passworts', recipients=[email])
-            msg.body = f'Hallo {user.username},\n\nklicke auf den folgenden Link, um dein Passwort zurückzusetzen: {link}\n\nWenn du diese Anfrage nicht gestellt hast, ignoriere diese E-Mail bitte.\n\nDein Genussreise-Team'
+            msg = Message('Dein Link zum Zurücksetzen des Passworts', recipients=[user.email])
+            msg.body = f'Hallo {user.username},\n\nklicke auf den folgenden Link, um dein Passwort zurückzusetzen: {link}\n\nDein Genussreise-Team'
             try:
                 mail.send(msg)
                 flash('Ein Link zum Zurücksetzen des Passworts wurde an deine E-Mail-Adresse gesendet.', 'success')
@@ -336,13 +230,49 @@ def forgot_password():
                 flash(f'E-Mail konnte nicht gesendet werden. Fehler: {e}', 'danger')
         else:
             flash('Kein Benutzer mit dieser E-Mail-Adresse gefunden.', 'warning')
-        return redirect(url_for('login'))
     return render_template('forgot_password.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated: return redirect(url_for('index'))
+    if request.method == 'POST':
+        password = request.form.get('password')
+        is_strong, message = is_password_strong(password)
+        if not is_strong:
+            flash(message, 'danger')
+            return redirect(url_for('register'))
+        if User.query.filter_by(username=request.form.get('username')).first():
+            flash('Benutzername bereits vergeben.', 'danger')
+            return redirect(url_for('register'))
+        db.session.add(User(username=request.form.get('username'), email=request.form.get('email'), password=generate_password_hash(password, method='pbkdf2:sha256')))
+        db.session.commit()
+        flash('Dein Account wurde erstellt! Du kannst dich jetzt einloggen.', 'success')
+        return redirect(url_for('login'))
+    return render_template('register.html')
+
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    try: email = s.loads(token, salt='email-confirm', max_age=1800)
+    except:
+        flash('Der Link zum Zurücksetzen des Passworts ist ungültig oder abgelaufen.', 'danger')
+        return redirect(url_for('forgot_password'))
+    if request.method == 'POST':
+        password = request.form.get('password')
+        is_strong, message = is_password_strong(password)
+        if not is_strong:
+            flash(message, 'danger')
+            return render_template('reset_password.html', token=token)
+        user = User.query.filter_by(email=email).first()
+        if user:
+            user.password = generate_password_hash(password, method='pbkdf2:sha256')
+            db.session.commit()
+            flash('Dein Passwort wurde erfolgreich zurückgesetzt! Du kannst dich jetzt einloggen.', 'success')
+            return redirect(url_for('login'))
+    return render_template('reset_password.html', token=token)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
+    if current_user.is_authenticated: return redirect(url_for('index'))
     if request.method == 'POST':
         user = User.query.filter_by(username=request.form.get('username')).first()
         if user and check_password_hash(user.password, request.form.get('password')):
@@ -357,14 +287,12 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
-# --- DB-Initialisierung und Serverstart ---
+# --- 5. Serverstart & DB-Initialisierung ---
 def init_db():
     with app.app_context():
         db.create_all()
         if not Category.query.first():
-            default_categories = ['Abendessen', 'Asiatisch', 'Auflauf', 'Backen', 'Dessert', 'Deutsch', 'Eintopf', 'Französisch', 'Frühstück', 'Gebäck', 'Getränke', 'Glutenfrei', 'Hauptgericht', 'Indisch', 'Italienisch', 'Kuchen', 'Low Carb', 'Mediterran', 'Mexikanisch', 'Mittagessen', 'Salat', 'Snack', 'Smoothie', 'Suppe', 'Vegan', 'Vegetarisch', 'Vorspeise']
-            for cat_name in default_categories:
-                db.session.add(Category(name=cat_name))
+            db.session.add_all([Category(name=cat) for cat in ['Abendessen', 'Asiatisch', 'Auflauf', 'Backen', 'Dessert', 'Deutsch', 'Eintopf', 'Französisch', 'Frühstück', 'Gebäck', 'Getränke', 'Glutenfrei', 'Hauptgericht', 'Indisch', 'Italienisch', 'Kuchen', 'Low Carb', 'Mediterran', 'Mexikanisch', 'Mittagessen', 'Salat', 'Snack', 'Smoothie', 'Suppe', 'Vegan', 'Vegetarisch', 'Vorspeise']])
             db.session.commit()
 
 if __name__ == '__main__':
