@@ -4,19 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Genussreise</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 </head>
 <body class="d-flex flex-column min-vh-100">
-    <!-- HIER IST DIE KORREKTUR: navbar-dark statt navbar-light -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
+    <nav class="navbar navbar-expand-md navbar-dark bg-primary fixed-top">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('index') }}">Genussreise</a>
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
+                <!-- Haupt-Navigation (links) -->
                 <ul class="navbar-nav mr-auto">
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('index') }}">Startseite</a>
@@ -26,26 +26,17 @@
                             Kategorien
                         </a>
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                            {% if all_categories %}
-                                {% for category in all_categories %}
-                                    <a class="dropdown-item" href="{{ url_for('recipes_in_category', category_id=category.id) }}">{{ category.name }}</a>
-                                {% endfor %}
-                            {% else %}
-                                <a class="dropdown-item" href="#">Keine Kategorien</a>
-                            {% endif %}
+                            {% for category in all_categories %}
+                                <a class="dropdown-item" href="{{ url_for('recipes_in_category', category_id=category.id) }}">{{ category.name }}</a>
+                            {% endfor %}
                         </div>
                     </li>
-                    {% if current_user.is_authenticated %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('add_recipe') }}">Rezept erstellen</a>
-                    </li>
-                    {% endif %}
                 </ul>
-                <form class="form-inline my-2 my-lg-0 mx-auto" action="{{ url_for('search') }}" method="GET">
-                    <input class="form-control mr-sm-2" type="search" placeholder="Suche..." aria-label="Search" name="query">
-                    <button class="btn btn-outline-light my-2 my-sm-0" type="submit">Suchen</button>
-                </form>
-                <ul class="navbar-nav ml-auto">
+                
+                <!-- KORRIGIERTE REIHENFOLGE: Erst Nutzer-Login, dann Suche -->
+
+                <!-- Nutzer-Navigation (rechts) -->
+                <ul class="navbar-nav">
                     {% if current_user.is_authenticated %}
                         <li class="nav-item">
                             <span class="navbar-text mr-3">Hallo, {{ current_user.username }}</span>
@@ -62,11 +53,17 @@
                         </li>
                     {% endif %}
                 </ul>
+                
+                <!-- Suchformular (ganz rechts, und im mobilen Menü unten) -->
+                <form class="form-inline my-2 my-lg-0 ml-lg-3" action="{{ url_for('search') }}">
+                    <input class="form-control mr-sm-2" type="search" placeholder="Suche..." aria-label="Suche" name="query">
+                    <button class="btn btn-outline-light my-2 my-sm-0" type="submit">Suchen</button>
+                </form>
             </div>
         </div>
     </nav>
 
-    <main class="container mt-4 flex-shrink-0">
+    <main role="main" class="container mt-5 pt-5 flex-grow-1">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -74,14 +71,13 @@
                 {% endfor %}
             {% endif %}
         {% endwith %}
-        
         {% block content %}{% endblock %}
     </main>
 
     <footer class="footer mt-auto py-3">
-      <div class="container text-center">
-        <span class="text-muted">&copy; {{ current_year }} Genussreise. Alle Rechte vorbehalten.</span>
-      </div>
+        <div class="container text-center">
+            <span class="text-muted">© {{ current_year }} Genussreise. Alle Rechte vorbehalten.</span>
+        </div>
     </footer>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
