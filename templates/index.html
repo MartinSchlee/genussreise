@@ -22,18 +22,25 @@
                     <span class="badge badge-info">{{ recipe.category.name }}</span>
                 </div>
             </div>
-            <!-- KORRIGIERTER FOOTER MIT BUTTON-LOGIK -->
             <div class="card-footer bg-transparent border-top-0 d-flex justify-content-start align-items-center">
                 <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="btn btn-primary btn-sm mr-2">Ansehen</a>
-                
-                <!-- Bearbeiten-Button: Sichtbar für Autor ODER Admin -->
-                {% if current_user.is_authenticated and (current_user.id == recipe.author.id or current_user.username in config.ADMIN_USERNAMES) %}
-                    <a href="{{ url_for('edit_recipe', recipe_id=recipe.id) }}" class="btn btn-secondary btn-sm mr-2">Bearbeiten</a>
+
+                <!-- NEU: Favoriten-Button -->
+                {% if current_user.is_authenticated %}
+                    <form action="{{ url_for('favorite_recipe', recipe_id=recipe.id) }}" method="POST" class="mr-2">
+                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Zu Favoriten hinzufügen/entfernen">
+                            {% if recipe in current_user.favorite_recipes %}
+                                <i class="fas fa-heart"></i> <!-- Gefülltes Herz -->
+                            {% else %}
+                                <i class="far fa-heart"></i> <!-- Leeres Herz -->
+                            {% endif %}
+                        </button>
+                    </form>
                 {% endif %}
                 
-                <!-- Löschen-Button: Sichtbar NUR für Admin -->
+                <!-- Admin-Löschen-Button -->
                 {% if current_user.is_authenticated and current_user.username in config.ADMIN_USERNAMES %}
-                    <form action="{{ url_for('delete_recipe', recipe_id=recipe.id) }}" method="POST" onsubmit="return confirm('Bist du sicher, dass du dieses Rezept wirklich löschen willst?');" style="display: inline;">
+                    <form action="{{ url_for('delete_recipe', recipe_id=recipe.id) }}" method="POST" onsubmit="return confirm('Sicher?');" style="display: inline;">
                         <button type="submit" class="btn btn-danger btn-sm">Löschen</button>
                     </form>
                 {% endif %}

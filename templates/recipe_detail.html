@@ -18,16 +18,29 @@
             </div>
             
             <!-- KORRIGIERTE, GETRENNTE BUTTON-LOGIK -->
-            <div class="d-flex">
+            <div class="d-flex align-items-center">
+                <!-- NEU: Favoriten-Button -->
+                {% if current_user.is_authenticated %}
+                    <form action="{{ url_for('favorite_recipe', recipe_id=recipe.id) }}" method="POST" class="mr-2">
+                        <button type="submit" class="btn btn-danger">
+                            {% if recipe in current_user.favorite_recipes %}
+                                <i class="fas fa-heart"></i> Aus Favoriten entfernen
+                            {% else %}
+                                <i class="far fa-heart"></i> Zu Favoriten hinzufügen
+                            {% endif %}
+                        </button>
+                    </form>
+                {% endif %}
+
                 <!-- Bearbeiten-Button: Sichtbar für Autor ODER Admin -->
                 {% if current_user.is_authenticated and (current_user.id == recipe.author.id or current_user.username in config.ADMIN_USERNAMES) %}
-                    <a href="{{ url_for('edit_recipe', recipe_id=recipe.id) }}" class="btn btn-secondary btn-sm mr-2">Bearbeiten</a>
+                    <a href="{{ url_for('edit_recipe', recipe_id=recipe.id) }}" class="btn btn-secondary mr-2">Bearbeiten</a>
                 {% endif %}
                 
                 <!-- Löschen-Button: Sichtbar NUR für Admin -->
                 {% if current_user.is_authenticated and current_user.username in config.ADMIN_USERNAMES %}
                     <form action="{{ url_for('delete_recipe', recipe_id=recipe.id) }}" method="POST" onsubmit="return confirm('Bist du sicher, dass du dieses Rezept wirklich löschen willst?');">
-                        <button type="submit" class="btn btn-danger btn-sm">Löschen</button>
+                        <button type="submit" class="btn btn-danger">Löschen</button>
                     </form>
                 {% endif %}
             </div>

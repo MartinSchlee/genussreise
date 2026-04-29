@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="mb-4">Mein Kochbuch</h2>
+
+{% if not recipes %}
+    <div class="alert alert-info">
+        Du hast noch keine Rezepte zu deinen Favoriten hinzugefügt. Klicke bei einem Rezept auf das Herz-Icon, um es hier zu speichern.
+    </div>
+{% else %}
+    <div class="row">
+        {% for recipe in recipes %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}">
+                    <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" class="card-img-top" alt="{{ recipe.name }}" style="height: 200px; object-fit: cover;">
+                </a>
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">{{ recipe.name }}</h5>
+                    <p class="card-text text-muted small">Von: {{ recipe.author.username }}</p>
+                    <div class="rating-stars mb-2">
+                        {% for i in range(5) %}<i class="{% if i < recipe.average_rating %}fas fa-star{% else %}far fa-star{% endif %}"></i>{% endfor %}
+                        <small class="ml-1">({{ recipe.rating_count }})</small>
+                    </div>
+                    <div class="mt-auto">
+                        <span class="badge badge-info">{{ recipe.category.name }}</span>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-top-0 d-flex justify-content-start align-items-center">
+                    <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="btn btn-primary btn-sm mr-2">Ansehen</a>
+                    
+                    <!-- Favoriten-Button (zum Entfernen) -->
+                    <form action="{{ url_for('favorite_recipe', recipe_id=recipe.id) }}" method="POST" class="mr-2">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                            <i class="fas fa-heart"></i> Entfernen
+                        </button>
+                    </form>
+                    
+                    {% if current_user.is_authenticated and current_user.username in config.ADMIN_USERNAMES %}
+                        <form action="{{ url_for('delete_recipe', recipe_id=recipe.id) }}" method="POST" onsubmit="return confirm('Bist du sicher?');" style="display: inline;">
+                            <button type="submit" class="btn btn-danger btn-sm">Löschen</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% endif %}
+{% endblock %}

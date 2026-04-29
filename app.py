@@ -19,20 +19,27 @@ app.config['SECRET_KEY'] = 'dein_sehr_geheimer_schlüssel_hier'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'users.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join(basedir, 'static', 'uploads')
-app.config['ADMIN_USERNAMES'] = ['Martin', 'Daniel'] 
+app.config['ADMIN_USERNAMES'] = ['Martin'] 
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'fasi270669@gmail.com'
-app.config['MAIL_PASSWORD'] = 'wlqs fbtg fqqi uywd'
-app.config['MAIL_DEFAULT_SENDER'] = ('Genussreise', 'fasi270669@gmail.com')
+app.config['MAIL_USERNAME'] = 'deine.email@gmail.com' # ERSETZE DIES MIT DEINER ECHTEN E-MAIL
+app.config['MAIL_PASSWORD'] = 'dein_app_passwort_hier' # ERSETZE DIES MIT DEINEM ECHTEN APP-PASSWORT
+app.config['MAIL_DEFAULT_SENDER'] = ('Genussreise', 'deine.email@gmail.com')
 
 db = SQLAlchemy(app)
 mail = Mail(app)
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
 
-# --- 2. Datenbankmodelle --- (NACH OBEN VERSCHOBEN)
+# --- 2. Datenbankmodelle ---
+
+# NEU: Verbindungstabelle für die Many-to-Many-Beziehung
+favorites = db.Table('favorites',
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
+    db.Column('recipe_id', db.Integer, db.ForeignKey('recipe.id'), primary_key=True)
+)
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
@@ -40,6 +47,9 @@ class User(UserMixin, db.Model):
     password = db.Column(db.String(200), nullable=False)
     recipes = db.relationship('Recipe', backref='author', lazy=True, cascade="all, delete-orphan")
     reviews = db.relationship('Review', backref='reviewer', lazy=True, cascade="all, delete-orphan")
+    # NEU: Beziehung zu den favorisierten Rezepten
+    favorite_recipes = db.relationship('Recipe', secondary=favorites, lazy='subquery',
+        backref=db.backref('favorited_by', lazy=True))
 
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -93,18 +103,15 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 @login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
+def load_user(user_id): return User.query.get(int(user_id))
 
 @app.context_processor
 def inject_global_variables():
-    # Jetzt ist 'Category' definiert und dieser Aufruf ist gültig
     categories = Category.query.order_by(Category.name).all()
     return dict(config=app.config, all_categories=categories, current_year=datetime.datetime.now(timezone.utc).year)
 
 @app.template_filter('nl2br')
-def nl2br_filter(s):
-    return escape(s).replace('\n', Markup('<br>'))
+def nl2br_filter(s): return escape(s).replace('\n', Markup('<br>'))
 
 def is_password_strong(password):
     if len(password) < 10: return False, "Das Passwort muss mindestens 10 Zeichen lang sein."
@@ -188,6 +195,33 @@ def delete_recipe(recipe_id):
     db.session.commit()
     flash('Rezept wurde vom Administrator gelöscht.', 'success')
     return redirect(url_for('index'))
+
+# NEUE ROUTE zum Favorisieren
+@app.route('/favorite/<int:recipe_id>', methods=['POST'])
+@login_required
+def favorite_recipe(recipe_id):
+    recipe = Recipe.query.get_or_404(recipe_id)
+    if recipe in current_user.favorite_recipes:
+        # Wenn schon favorisiert, dann entfernen
+        current_user.favorite_recipes.remove(recipe)
+        db.session.commit()
+        flash(f'"{recipe.name}" wurde von deinen Favoriten entfernt.', 'success')
+    else:
+        # Sonst hinzufügen
+        current_user.favorite_recipes.append(recipe)
+        db.session.commit()
+        flash(f'"{recipe.name}" wurde zu deinen Favoriten hinzugefügt!', 'success')
+    
+    # Zurück zur vorherigen Seite
+    return redirect(request.referrer or url_for('index'))
+
+# NEUE ROUTE für die Kochbuch-Ansicht
+@app.route('/my-cookbook')
+@login_required
+def my_cookbook():
+    # Einfach die Liste der Favoriten des aktuellen Nutzers holen
+    recipes = current_user.favorite_recipes
+    return render_template('my_cookbook.html', recipes=recipes)
 
 @app.route('/search')
 def search():
