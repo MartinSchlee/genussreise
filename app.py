@@ -19,13 +19,13 @@ app.config['SECRET_KEY'] = 'dein_sehr_geheimer_schlüssel_hier'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'users.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join(basedir, 'static', 'uploads')
-app.config['ADMIN_USERNAMES'] = ['Martin'] 
+app.config['ADMIN_USERNAMES'] = ['Martin', 'Daniel'] 
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'deine.email@gmail.com'
-app.config['MAIL_PASSWORD'] = 'dein_app_passwort_hier'
-app.config['MAIL_DEFAULT_SENDER'] = ('Genussreise', 'deine.email@gmail.com')
+app.config['MAIL_USERNAME'] = 'fasi270669@gmail.com'
+app.config['MAIL_PASSWORD'] = 'wlqs fbtg fqqi uywd'
+app.config['MAIL_DEFAULT_SENDER'] = ('Genussreise', 'fasi270669@gmail.com')
 
 db = SQLAlchemy(app)
 mail = Mail(app)
