@@ -1,78 +1,116 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Neues Rezept erstellen</h2>
-<form method="POST" enctype="multipart/form-data">
-    <div class="form-group">
-        <label for="recipe_name">Rezeptname</label>
-        <input type="text" class="form-control" id="recipe_name" name="recipe_name" required>
-    </div>
-    <div class="form-group">
-        <label for="category_id">Kategorie</label>
-        <select class="form-control" id="category_id" name="category_id" required>
-            <option value="">Bitte wählen...</option>
-            {% for category in categories %}
-                <option value="{{ category.id }}">{{ category.name }}</option>
-            {% endfor %}
-        </select>
-    </div>
-     <div class="form-group">
-        <label for="image_file">Rezeptbild</label>
-        <input type="file" class="form-control-file" id="image_file" name="image_file">
-    </div>
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Die Card sorgt für Struktur und den Abstand zum Bildschirmrand -->
+            <div class="card shadow border-0">
+                <div class="card-header bg-primary text-white p-4">
+                    <h2 class="mb-0"><i class="fas fa-plus-circle mr-2"></i>Neues Rezept erstellen</h2>
+                </div>
+                
+                <div class="card-body p-4 p-md-5">
+                    <form action="{{ url_for('add_recipe') }}" method="POST" enctype="multipart/form-data">
+                        
+                        <!-- Rezeptname -->
+                        <div class="form-group mb-4">
+                            <label class="font-weight-bold">Wie heißt dein Gericht?</label>
+                            <input type="text" name="recipe_name" class="form-control form-control-lg" placeholder="z.B. Omas bester Apfelkuchen" required>
+                        </div>
 
-    <!-- HIER WURDE "PORTIONEN" HINZUGEFÜGT -->
-    <fieldset class="mb-3">
-        <legend class="h6">Allgemeine Angaben</legend>
-        <div class="form-row">
-            <div class="col"><label>Portionen</label><input type="text" class="form-control" name="servings" placeholder="z.B. 4"></div>
-            <div class="col"><label>Vorbereitung</label><input type="text" class="form-control" name="prep_time" placeholder="z.B. 20 Min"></div>
-            <div class="col"><label>Garzeit</label><input type="text" class="form-control" name="cook_time" placeholder="z.B. 30 Min"></div>
-            <div class="col"><label>Ruhezeit</label><input type="text" class="form-control" name="rest_time" placeholder="z.B. 1 Std"></div>
-            <div class="col"><label>Gesamtzeit</label><input type="text" class="form-control" name="total_time" placeholder="z.B. 50 Min"></div>
+                        <div class="row">
+                            <!-- Kategorie -->
+                            <div class="col-md-6 mb-4">
+                                <label class="font-weight-bold">Kategorie</label>
+                                <select name="category_id" class="form-control">
+                                    {% for cat in all_categories %}
+                                        <option value="{{ cat.id }}">{{ cat.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <!-- Bild Upload -->
+                            <div class="col-md-6 mb-4">
+                                <label class="font-weight-bold">Ein schönes Foto hochladen</label>
+                                <div class="custom-file">
+                                    <input type="file" name="image_file" class="custom-file-input" id="imageInput">
+                                    <label class="custom-file-label" for="imageInput">Datei wählen...</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h4 class="border-bottom pb-2 mb-4 mt-2 text-muted">Allgemeine Angaben</h4>
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <label>Portionen</label>
+                                <input type="text" name="servings" class="form-control" placeholder="z.B. 4 Personen">
+                            </div>
+                            <div class="col-md-4">
+                                <label>Vorbereitung (Min.)</label>
+                                <input type="number" name="prep_time" class="form-control" placeholder="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label>Garzeit (Min.)</label>
+                                <input type="number" name="cook_time" class="form-control" placeholder="0">
+                            </div>
+                        </div>
+
+                        <h4 class="border-bottom pb-2 mb-4 text-muted">Zutaten</h4>
+                        <div id="ingredients-container">
+                            <div class="row mb-2 ingredient-row">
+                                <div class="col-md-2">
+                                    <input type="text" name="quantity[]" class="form-control" placeholder="Menge">
+                                </div>
+                                <div class="col-md-2">
+                                    <input type="text" name="unit[]" class="form-control" placeholder="Einheit">
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="text" name="ingredient_name[]" class="form-control" placeholder="Zutat">
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-info btn-sm mt-2 mb-4" onclick="addIngredient()">
+                            <i class="fas fa-plus"></i> Weitere Zutat hinzufügen
+                        </button>
+
+                        <h4 class="border-bottom pb-2 mb-4 text-muted">Zubereitung</h4>
+                        <div class="form-group mb-4">
+                            <textarea name="instructions" class="form-control" rows="8" placeholder="Beschreibe hier Schritt für Schritt, wie das Gericht zubereitet wird..." required></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between pt-4 border-top">
+                            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary px-4">Abbrechen</a>
+                            <button type="submit" class="btn btn-primary btn-lg px-5 shadow-sm">
+                                <i class="fas fa-cloud-upload-alt mr-2"></i>Rezept veröffentlichen
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
         </div>
-    </fieldset>
-
-    <fieldset id="ingredients-container" class="mb-3">
-        <legend class="h6">Zutaten</legend>
-        <div class="ingredient-row form-row align-items-end mb-2">
-            <div class="col-md-2"><label>Menge</label><input type="text" name="quantity[]" class="form-control"></div>
-            <div class="col-md-2"><label>Einheit</label><input type="text" name="unit[]" class="form-control"></div>
-            <div class="col"><label>Zutat</label><input type="text" name="ingredient_name[]" class="form-control"></div>
-        </div>
-    </fieldset>
-    <button type="button" id="add-ingredient" class="btn btn-secondary btn-sm mb-3">Weitere Zutat hinzufügen</button>
-
-    <div class="form-group">
-        <label for="instructions">Zubereitung</label>
-        <textarea class="form-control" id="instructions" name="instructions" rows="10" required></textarea>
     </div>
+</div>
 
-    <!-- HIER WURDE DIE ÜBERSCHRIFT GEÄNDERT & "PORTIONEN" ENTFERNT -->
-    <fieldset class="mb-3">
-        <legend class="h6">Nährwertangaben pro 100g (optional)</legend>
-        <div class="form-row">
-            <div class="col"><input type="text" class="form-control" name="calories" placeholder="Kalorien"></div>
-            <div class="col"><input type="text" class="form-control" name="protein" placeholder="Protein"></div>
-            <div class="col"><input type="text" class="form-control" name="carbs" placeholder="Kohlenhydrate"></div>
-            <div class="col"><input type="text" class="form-control" name="fat" placeholder="Fett"></div>
-        </div>
-    </fieldset>
-
-    <button type="submit" class="btn btn-primary">Rezept speichern</button>
-</form>
-
+<!-- Script für die Dynamik -->
 <script>
-document.getElementById('add-ingredient').addEventListener('click', function() {
+function addIngredient() {
     const container = document.getElementById('ingredients-container');
     const newRow = document.createElement('div');
-    newRow.className = 'ingredient-row form-row align-items-end mb-2';
+    newRow.className = 'row mb-2 ingredient-row';
     newRow.innerHTML = `
-        <div class="col-md-2"><input type="text" name="quantity[]" class="form-control"></div>
-        <div class="col-md-2"><input type="text" name="unit[]" class="form-control"></div>
-        <div class="col"><input type="text" name="ingredient_name[]" class="form-control"></div>
+        <div class="col-md-2"><input type="text" name="quantity[]" class="form-control" placeholder="Menge"></div>
+        <div class="col-md-2"><input type="text" name="unit[]" class="form-control" placeholder="Einheit"></div>
+        <div class="col-md-8"><input type="text" name="ingredient_name[]" class="form-control" placeholder="Zutat"></div>
     `;
     container.appendChild(newRow);
-});
+}
+
+// Dateiname im Input anzeigen
+document.getElementById('imageInput').onchange = function () {
+    var fileName = this.value.split("\\").pop();
+    this.nextElementSibling.classList.add("selected");
+    this.nextElementSibling.innerHTML = fileName || "Datei wählen...";
+};
 </script>
 {% endblock %}
