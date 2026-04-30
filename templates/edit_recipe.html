@@ -1,81 +1,120 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Rezept bearbeiten: {{ recipe.name }}</h2>
-<form method="POST" enctype="multipart/form-data">
-    <div class="form-group">
-        <label for="recipe_name">Rezeptname</label>
-        <input type="text" class="form-control" id="recipe_name" name="recipe_name" value="{{ recipe.name }}" required>
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Die Card sorgt für den weißen Kasten und den Abstand zum Rand -->
+            <div class="card shadow border-0">
+                <div class="card-header bg-dark text-white p-4">
+                    <h2 class="mb-0"><i class="fas fa-edit mr-2"></i>Rezept bearbeiten: {{ recipe.name }}</h2>
+                </div>
+                
+                <div class="card-body p-4 p-md-5">
+                    <form action="{{ url_for('edit_recipe', recipe_id=recipe.id) }}" method="POST" enctype="multipart/form-data">
+                        
+                        <!-- Rezeptname -->
+                        <div class="form-group mb-4">
+                            <label class="font-weight-bold">Rezeptname</label>
+                            <input type="text" name="recipe_name" class="form-control form-control-lg" value="{{ recipe.name }}" required>
+                        </div>
+
+                        <div class="row">
+                            <!-- Kategorie -->
+                            <div class="col-md-6 mb-4">
+                                <label class="font-weight-bold">Kategorie</label>
+                                <select name="category_id" class="form-control">
+                                    {% for cat in all_categories %}
+                                        <option value="{{ cat.id }}" {% if recipe.category_id == cat.id %}selected{% endif %}>
+                                            {{ cat.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <!-- Bild ändern -->
+                            <div class="col-md-6 mb-4">
+                                <label class="font-weight-bold">Bild ändern (optional)</label>
+                                <div class="custom-file">
+                                    <input type="file" name="image_file" class="custom-file-input" id="imageInput">
+                                    <label class="custom-file-label" for="imageInput">Datei wählen...</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h4 class="border-bottom pb-2 mb-4 mt-2">Allgemeine Angaben</h4>
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <label>Portionen</label>
+                                <input type="text" name="servings" class="form-control" value="{{ recipe.servings }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label>Vorbereitung (Min.)</label>
+                                <input type="number" name="prep_time" class="form-control" value="{{ recipe.prep_time }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label>Garzeit (Min.)</label>
+                                <input type="number" name="cook_time" class="form-control" value="{{ recipe.cook_time }}">
+                            </div>
+                        </div>
+
+                        <h4 class="border-bottom pb-2 mb-4">Zutaten</h4>
+                        <div id="ingredients-container">
+                            {% for ing in recipe.ingredients %}
+                            <div class="row mb-2 ingredient-row">
+                                <div class="col-md-2">
+                                    <input type="text" name="quantity[]" class="form-control" placeholder="Menge" value="{{ ing.quantity }}">
+                                </div>
+                                <div class="col-md-2">
+                                    <input type="text" name="unit[]" class="form-control" placeholder="Einheit" value="{{ ing.unit }}">
+                                </div>
+                                <div class="col-md-8">
+                                    <input type="text" name="ingredient_name[]" class="form-control" placeholder="Zutat" value="{{ ing.name }}">
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button type="button" class="btn btn-outline-info btn-sm mt-2 mb-4" onclick="addIngredient()">
+                            <i class="fas fa-plus"></i> Weitere Zutat hinzufügen
+                        </button>
+
+                        <h4 class="border-bottom pb-2 mb-4">Zubereitung</h4>
+                        <div class="form-group mb-4">
+                            <textarea name="instructions" class="form-control" rows="10" required>{{ recipe.instructions }}</textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between pt-4 border-top">
+                            <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="btn btn-outline-secondary">Abbrechen</a>
+                            <button type="submit" class="btn btn-success btn-lg px-5 shadow-sm">
+                                <i class="fas fa-save mr-2"></i>Änderungen speichern
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="form-group">
-        <label for="category_id">Kategorie</label>
-        <select class="form-control" id="category_id" name="category_id" required>
-            {% for category in categories %}
-                <option value="{{ category.id }}" {% if category.id == recipe.category_id %}selected{% endif %}>{{ category.name }}</option>
-            {% endfor %}
-        </select>
-    </div>
-    
-    <!-- HIER WURDE "PORTIONEN" HINZUGEFÜGT -->
-    <fieldset class="mb-3">
-        <legend class="h6">Allgemeine Angaben</legend>
-        <div class="form-row">
-            <div class="col"><label>Portionen</label><input type="text" class="form-control" name="servings" value="{{ recipe.servings or '' }}"></div>
-            <div class="col"><label>Vorbereitung</label><input type="text" class="form-control" name="prep_time" value="{{ recipe.prep_time or '' }}"></div>
-            <div class="col"><label>Garzeit</label><input type="text" class="form-control" name="cook_time" value="{{ recipe.cook_time or '' }}"></div>
-            <div class="col"><label>Ruhezeit</label><input type="text" class="form-control" name="rest_time" value="{{ recipe.rest_time or '' }}"></div>
-            <div class="col"><label>Gesamtzeit</label><input type="text" class="form-control" name="total_time" value="{{ recipe.total_time or '' }}"></div>
-        </div>
-    </fieldset>
+</div>
 
-    <fieldset id="ingredients-container" class="mb-3">
-        <legend class="h6">Zutaten</legend>
-        {% for ingredient in recipe.ingredients %}
-        <div class="ingredient-row form-row align-items-end mb-2">
-            <div class="col-md-2">{% if loop.first %}<label>Menge</label>{% endif %}<input type="text" name="quantity[]" class="form-control" value="{{ ingredient.quantity or '' }}"></div>
-            <div class="col-md-2">{% if loop.first %}<label>Einheit</label>{% endif %}<input type="text" name="unit[]" class="form-control" value="{{ ingredient.unit or '' }}"></div>
-            <div class="col">{% if loop.first %}<label>Zutat</label>{% endif %}<input type="text" name="ingredient_name[]" class="form-control" value="{{ ingredient.name }}"></div>
-        </div>
-        {% else %}
-         <div class="ingredient-row form-row align-items-end mb-2">
-            <div class="col-md-2"><label>Menge</label><input type="text" name="quantity[]" class="form-control"></div>
-            <div class="col-md-2"><label>Einheit</label><input type="text" name="unit[]" class="form-control"></div>
-            <div class="col"><label>Zutat</label><input type="text" name="ingredient_name[]" class="form-control"></div>
-        </div>
-        {% endfor %}
-    </fieldset>
-    <button type="button" id="add-ingredient" class="btn btn-secondary btn-sm mb-3">Weitere Zutat hinzufügen</button>
-    
-    <div class="form-group">
-        <label for="instructions">Zubereitung</label>
-        <textarea class="form-control" id="instructions" name="instructions" rows="10" required>{{ recipe.instructions }}</textarea>
-    </div>
-
-    <!-- HIER WURDE DIE ÜBERSCHRIFT GEÄNDERT & "PORTIONEN" ENTFERNT -->
-    <fieldset class="mb-3">
-        <legend class="h6">Nährwertangaben pro 100g (optional)</legend>
-        <div class="form-row">
-            <div class="col"><input type="text" class="form-control" name="calories" placeholder="Kalorien" value="{{ recipe.calories or '' }}"></div>
-            <div class="col"><input type="text" class="form-control" name="protein" placeholder="Protein" value="{{ recipe.protein or '' }}"></div>
-            <div class="col"><input type="text" class="form-control" name="carbs" placeholder="Kohlenhydrate" value="{{ recipe.carbs or '' }}"></div>
-            <div class="col"><input type="text" class="form-control" name="fat" placeholder="Fett" value="{{ recipe.fat or '' }}"></div>
-        </div>
-    </fieldset>
-
-    <button type="submit" class="btn btn-primary">Änderungen speichern</button>
-</form>
-
+<!-- Kleines Script zum dynamischen Hinzufügen von Zutaten-Zeilen -->
 <script>
-document.getElementById('add-ingredient').addEventListener('click', function() {
+function addIngredient() {
     const container = document.getElementById('ingredients-container');
     const newRow = document.createElement('div');
-    newRow.className = 'ingredient-row form-row align-items-end mb-2';
+    newRow.className = 'row mb-2 ingredient-row';
     newRow.innerHTML = `
-        <div class="col-md-2"><input type="text" name="quantity[]" class="form-control"></div>
-        <div class="col-md-2"><input type="text" name="unit[]" class="form-control"></div>
-        <div class="col"><input type="text" name="ingredient_name[]" class="form-control"></div>
+        <div class="col-md-2"><input type="text" name="quantity[]" class="form-control" placeholder="Menge"></div>
+        <div class="col-md-2"><input type="text" name="unit[]" class="form-control" placeholder="Einheit"></div>
+        <div class="col-md-8"><input type="text" name="ingredient_name[]" class="form-control" placeholder="Zutat"></div>
     `;
     container.appendChild(newRow);
-});
+}
+
+// Zeigt den Dateinamen im Upload-Feld an
+document.getElementById('imageInput').onchange = function () {
+    var fileName = this.value.split("\\").pop();
+    this.nextElementSibling.classList.add("selected");
+    this.nextElementSibling.innerHTML = fileName;
+};
 </script>
 {% endblock %}

@@ -94,3 +94,69 @@ body {
 .rating-form-stars button:hover ~ button {
     color: #e0e0e0;
 }
+
+@media print {
+    /* Navbar, Footer und Buttons beim Drucken verstecken */
+    .navbar, 
+    footer, 
+    .btn, 
+    .rating-stars,
+    .comments-section {
+        display: none !important;
+    }
+
+    /* Container-Breite anpassen */
+    .container {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Schatten entfernen, um Tinte zu sparen */
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+}
+
+/* Sterne-Rating Styling */
+.star-rating {
+    display: flex;
+    flex-direction: row-reverse; /* Wichtig für die Logik der Auswahl */
+    justify-content: flex-end;
+}
+
+.star-rating input {
+    display: none; /* Versteckt die Kreise */
+}
+
+.star-rating label {
+    font-size: 1.5rem;
+    color: #ccc;
+    cursor: pointer;
+    padding: 0 0.1rem;
+    transition: color 0.2s;
+}
+
+/* Wenn ein Stern ausgewählt ist oder gehovert wird */
+.star-rating input:checked ~ label,
+.star-rating label:hover,
+.star-rating label:hover ~ label {
+    color: #ffc107; /* Das typische Goldgelb */
+}
+
+/* Haupt-Container Abstände */
+main, .container {
+    padding-left: 20px;
+    padding-right: 20px;
+    margin-top: 30px;
+    margin-bottom: 50px;
+}
+
+/* Optional: Formular etwas schmaler machen, damit es auf großen Monitoren nicht so verloren wirkt */
+form {
+    max-width: 1000px;
+    margin-left: auto;
+    margin-right: auto;
+}

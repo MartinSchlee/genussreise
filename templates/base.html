@@ -3,61 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Genussreise</title>
+    <title>Genussreise - Dein digitales Kochbuch</title>
+    
+    <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    
+    <!-- Font Awesome für Symbole (Sterne, Drucker, Herz, etc.) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    
+    <!-- Deine eigene CSS Datei -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 </head>
-<body class="d-flex flex-column min-vh-100">
-    <nav class="navbar navbar-expand-md navbar-dark bg-primary fixed-top">
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm d-print-none">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">Genussreise</a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <a class="navbar-brand font-weight-bold" href="{{ url_for('index') }}">Genussreise</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
+            
             <div class="collapse navbar-collapse" id="navbarNav">
-                <!-- Haupt-Navigation -->
                 <ul class="navbar-nav mr-auto">
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Startseite</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">Startseite</a>
+                    </li>
+                    
+                    <!-- Kategorien Dropdown -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown">Kategorien</a>
+                        <a class="nav-link dropdown-toggle" href="#" id="catDrop" data-toggle="dropdown">
+                            Kategorien
+                        </a>
                         <div class="dropdown-menu">
-                            {% for category in all_categories %}<a class="dropdown-item" href="{{ url_for('recipes_in_category', category_id=category.id) }}">{{ category.name }}</a>{% endfor %}
+                            {% for cat in all_categories %}
+                                <a class="dropdown-item" href="{{ url_for('recipes_in_category', category_id=cat.id) }}">
+                                    {{ cat.name }}
+                                </a>
+                            {% endfor %}
                         </div>
                     </li>
+
                     {% if current_user.is_authenticated %}
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('my_cookbook') }}">Mein Kochbuch</a></li>
-                    <!-- NEU EINGEFÜGT: Link zum Hinzufügen von Rezepten -->
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('add_recipe') }}">Rezept hinzufügen</a></li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('my_cookbook') }}">Mein Kochbuch</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('add_recipe') }}">Rezept hinzufügen</a>
+                        </li>
                     {% endif %}
                 </ul>
-                
-                <!-- Nutzer-Navigation & Suche -->
-                <ul class="navbar-nav">
-                    {% if current_user.is_authenticated %}
-                        <li class="nav-item"><span class="navbar-text mr-3">Hallo, {{ current_user.username }}</span></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Logout</a></li>
-                    {% else %}
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">Login</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('register') }}">Registrieren</a></li>
-                    {% endif %}
-                </ul>
-                <form class="form-inline my-2 my-lg-0 ml-lg-3" action="{{ url_for('search') }}">
-                    <input class="form-control mr-sm-2" type="search" placeholder="Suche..." name="query">
+
+                <!-- Suche -->
+                <form class="form-inline my-2 my-lg-0 mr-3" action="{{ url_for('search') }}" method="GET">
+                    <input class="form-control mr-sm-2" type="search" name="query" placeholder="Suche...">
                     <button class="btn btn-outline-light my-2 my-sm-0" type="submit">Suchen</button>
                 </form>
+
+                <!-- User Bereich -->
+                <ul class="navbar-nav">
+                    {% if current_user.is_authenticated %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDrop" data-toggle="dropdown">
+                                Hallo, {{ current_user.username }}
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-right">
+                                <a class="dropdown-item" href="{{ url_for('profile') }}">Mein Profil</a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item text-danger" href="{{ url_for('logout') }}">Logout</a>
+                            </div>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-primary btn-sm text-white ml-2" href="{{ url_for('register') }}">Registrieren</a>
+                        </li>
+                    {% endif %}
+                </ul>
             </div>
         </div>
     </nav>
-    <main role="main" class="container mt-5 pt-5 flex-grow-1">
-        {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}
+
+    <!-- Flash Messages (Erfolgsmeldungen / Fehler) -->
+    <div class="container mt-3 d-print-none">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Hauptinhalt -->
+    <main>
         {% block content %}{% endblock %}
     </main>
-    <footer class="footer mt-auto py-3">
-        <div class="container text-center"><span class="text-muted">© {{ current_year }} Genussreise. Alle Rechte vorbehalten.</span></div>
+
+    <!-- Footer -->
+    <footer class="text-center py-4 mt-5 border-top text-muted d-print-none">
+        <div class="container">
+            &copy; {{ current_year }} Genussreise. Alle Rechte vorbehalten.
+        </div>
     </footer>
+
+    <!-- Bootstrap & JS Scripts (Wichtig für Dropdowns und Flash-Messages) -->
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
