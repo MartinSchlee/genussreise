@@ -1,141 +1,56 @@
 {% extends "base.html" %}
-
 {% block content %}
 <div class="container mt-4">
-    <!-- Breadcrumb Navigation (beim Drucken ausgeblendet) -->
-    <nav aria-label="breadcrumb" class="d-print-none">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Startseite</a></li>
-            {% if recipe.category %}
-                <li class="breadcrumb-item">
-                    <a href="{{ url_for('recipes_in_category', category_id=recipe.category.id) }}">
-                        {{ recipe.category.name }}
-                    </a>
-                </li>
-            {% endif %}
-            <li class="breadcrumb-item active">{{ recipe.name }}</li>
-        </ol>
-    </nav>
-
     <div class="row">
-        <!-- Linke Spalte: Bild und Basis-Infos -->
-        <div class="col-md-5 mb-4">
-            <div class="card shadow-sm">
-                <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" 
-                     class="img-fluid rounded-top" alt="{{ recipe.name }}">
-                <div class="card-body">
-                    <h5 class="text-muted small border-bottom pb-2">Details</h5>
-                    <ul class="list-unstyled">
-                        <li><i class="fas fa-clock mr-2"></i><strong>Vorbereitung:</strong> {{ recipe.prep_time or '-' }} Min.</li>
-                        <li><i class="fas fa-utensils mr-2"></i><strong>Kochzeit:</strong> {{ recipe.cook_time or '-' }} Min.</li>
-                        <li><i class="fas fa-users mr-2"></i><strong>Portionen:</strong> {{ recipe.servings or '-' }}</li>
-                    </ul>
+        <div class="col-md-4">
+            <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" class="img-fluid rounded shadow mb-4">
+            
+            <div class="p-3 bg-white border rounded shadow-sm mb-4">
+                <h5 class="border-bottom pb-2 text-warning">Nährwerte <small class="text-muted">(pro 100g)</small></h5>
+                <div class="row text-center mt-3">
+                    <div class="col-6 mb-2"><strong>{{ recipe.calories or 0 }}</strong><br><small>kcal</small></div>
+                    <div class="col-6 mb-2"><strong>{{ recipe.protein or 0 }}g</strong><br><small>Eiweiß</small></div>
+                    <div class="col-6"><strong>{{ recipe.carbs or 0 }}g</strong><br><small>KH</small></div>
+                    <div class="col-6"><strong>{{ recipe.fat or 0 }}g</strong><br><small>Fett</small></div>
                 </div>
             </div>
         </div>
 
-        <!-- Rechte Spalte: Titel, Zutaten, Zubereitung -->
-        <div class="col-md-7">
-            <div class="d-flex justify-content-between align-items-start mb-3">
-                <div>
-                    <h1 class="display-4">{{ recipe.name }}</h1>
-                    <p class="text-muted">Ein Rezept von <strong>{{ recipe.author.username }}</strong></p>
+        <div class="col-md-8">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1>{{ recipe.name }}</h1>
+                <div class="d-flex">
+                    {% if current_user.is_authenticated and (recipe.author == current_user or current_user.is_admin) %}
+                        <a href="{{ url_for('edit_recipe', recipe_id=recipe.id) }}" class="btn btn-sm btn-outline-warning mr-2">Bearbeiten</a>
+                        <form action="{{ url_for('delete_recipe', recipe_id=recipe.id) }}" method="POST">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Wirklich unwiderruflich löschen?')">Löschen</button>
+                        </form>
+                    {% endif %}
                 </div>
-                
-                <!-- Drucken-Button (verschwindet auf dem Ausdruck selbst) -->
-                <button onclick="window.print();" class="btn btn-outline-secondary d-print-none">
-                    <i class="fas fa-print"></i> Rezept drucken
-                </button>
+            </div>
+            <p class="text-muted">Kategorie: {{ recipe.category_rel.name if recipe.category_rel else 'Allgemein' }} | Erstellt von: {{ recipe.author.username }}</p>
+            <hr>
+            
+            <div class="row mb-4 text-center">
+                <div class="col-3 border-right"><strong>{{ recipe.prep_time or 0 }} Min.</strong><br><small>Vorbereitung</small></div>
+                <div class="col-3 border-right"><strong>{{ recipe.cook_time or 0 }} Min.</strong><br><small>Kochen</small></div>
+                <div class="col-3 border-right"><strong>{{ recipe.rest_time or 0 }} Min.</strong><br><small>Ruhen</small></div>
+                <div class="col-3"><strong>{{ recipe.servings or 1 }}</strong><br><small>Portionen</small></div>
             </div>
 
-            <hr>
-
-            <h3>Zutaten</h3>
-            <ul class="list-group list-group-flush mb-4">
-                {% for ingredient in recipe.ingredients %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <span>{{ ingredient.quantity }} {{ ingredient.unit }} {{ ingredient.name }}</span>
-                    <!-- Platzhalter für späteren Einkaufslisten-Button -->
+            <h4 class="text-warning mt-4">Zutaten</h4>
+            <ul class="list-group list-group-flush mb-4 shadow-sm">
+                {% for ing in recipe.ingredients %}
+                <li class="list-group-item d-flex">
+                    <span class="mr-3 text-muted" style="min-width: 80px;">{{ ing.amount }}</span>
+                    <strong>{{ ing.name }}</strong>
                 </li>
                 {% endfor %}
             </ul>
 
-            <h3>Zubereitung</h3>
-            <div class="recipe-instructions p-3 bg-light rounded shadow-sm">
-                {{ recipe.instructions | nl2br }}
-            </div>
-
-            <hr class="mt-5 d-print-none">
-
-            <!-- Aktionen: Bearbeiten / Löschen (Nur für Autor oder Admin) -->
-            <div class="mt-4 d-print-none">
-                {% if current_user.is_authenticated %}
-                    {% if current_user == recipe.author or current_user.is_admin %}
-                        <a href="{{ url_for('edit_recipe', recipe_id=recipe.id) }}" class="btn btn-warning mr-2">
-                            <i class="fas fa-edit"></i> Rezept bearbeiten
-                        </a>
-                    {% endif %}
-                    
-                    {% if current_user.is_admin %}
-                        <form action="{{ url_for('delete_recipe', recipe_id=recipe.id) }}" method="POST" 
-                              class="d-inline" onsubmit="return confirm('Möchtest du dieses Rezept wirklich unwiderruflich löschen?');">
-                            <button type="submit" class="btn btn-danger">
-                                <i class="fas fa-trash"></i> Löschen
-                            </button>
-                        </form>
-                    {% endif %}
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- NEU: Interaktive Bewertungs-Sektion -->
-    <div class="row mt-5 d-print-none">
-        <div class="col-12">
-            <h3 class="border-bottom pb-2">Bewertungen ({{ recipe.rating_count }})</h3>
-            
-            {% if current_user.is_authenticated %}
-                <div class="card p-3 mb-4 bg-light">
-                    <form action="{{ url_for('rate_recipe', recipe_id=recipe.id) }}" method="POST">
-                        <div class="form-group">
-                            <label class="font-weight-bold">Deine Sterne-Bewertung:</label>
-                            <div class="star-rating">
-                                <input type="radio" id="star5" name="rating" value="5" required /><label for="star5" title="5 Sterne"><i class="fas fa-star"></i></label>
-                                <input type="radio" id="star4" name="rating" value="4" /><label for="star4" title="4 Sterne"><i class="fas fa-star"></i></label>
-                                <input type="radio" id="star3" name="rating" value="3" /><label for="star3" title="3 Sterne"><i class="fas fa-star"></i></label>
-                                <input type="radio" id="star2" name="rating" value="2" /><label for="star2" title="2 Sterne"><i class="fas fa-star"></i></label>
-                                <input type="radio" id="star1" name="rating" value="1" /><label for="star1" title="1 Stern"><i class="fas fa-star"></i></label>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <textarea name="comment" class="form-control" rows="3" placeholder="Wie hat es dir geschmeckt? Hast du etwas verändert?"></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-primary shadow-sm">Bewertung abschicken</button>
-                    </form>
-                </div>
-            {% else %}
-                <div class="alert alert-info">
-                    Bitte <a href="{{ url_for('login') }}">logge dich ein</a>, um eine Bewertung abzugeben.
-                </div>
-            {% endif %}
-
-            <!-- Liste der bisherigen Kommentare -->
-            <div class="list-group mt-3">
-                {% for review in recipe.reviews %}
-                    <div class="list-group-item list-group-item-action flex-column align-items-start shadow-sm mb-2 rounded">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1"><i class="fas fa-user-circle mr-1"></i> {{ review.reviewer.username }}</h5>
-                            <span class="text-warning">
-                                {% for i in range(review.rating) %}<i class="fas fa-star"></i>{% endfor %}
-                                {% for i in range(5 - review.rating) %}<i class="far fa-star"></i>{% endfor %}
-                            </span>
-                        </div>
-                        <p class="mb-1 mt-2">{{ review.text }}</p>
-                        <small class="text-muted">{{ review.timestamp.strftime('%d.%m.%Y um %H:%M') }} Uhr</small>
-                    </div>
-                {% else %}
-                    <p class="text-muted italic">Noch keine Kommentare vorhanden. Schreibe die erste Bewertung!</p>
-                {% endfor %}
+            <h4 class="text-warning">Zubereitung</h4>
+            <div class="p-3 bg-white border rounded shadow-sm" style="white-space: pre-line;">
+                {{ recipe.instructions }}
             </div>
         </div>
     </div>
