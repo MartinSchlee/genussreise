@@ -4,12 +4,12 @@
     <h2 class="text-center mb-4 text-warning">Login</h2>
     <form method="POST">
         <div class="form-group">
-            <label>Email</label>
-            <input type="email" name="email" class="form-control" required>
+            <label for="email">Email Adresse</label>
+            <input type="email" id="email" name="email" class="form-control" required>
         </div>
         <div class="form-group">
-            <label>Passwort</label>
-            <input type="password" name="password" class="form-control" required>
+            <label for="password">Passwort</label>
+            <input type="password" id="password" name="password" class="form-control" required>
         </div>
         <button type="submit" class="btn btn-warning btn-block font-weight-bold shadow-sm">Einloggen</button>
     </form>
@@ -17,6 +17,6 @@
         <a href="{{ url_for('forgot_password') }}" class="small text-muted">Passwort vergessen?</a>
     </div>
     <hr>
-    <p class="text-center small mb-0">Noch kein Konto? <a href="{{ url_for('register') }}">Registrieren</a></p>
+    <p class="text-center small">Noch kein Konto? <a href="{{ url_for('register') }}">Registrieren</a></p>
 </div>
 {% endblock %}
