@@ -1,22 +1,25 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container">
-    <h1 class="my-4">{% if current_category %}{{ current_category.name }}{% else %}Unsere Rezepte{% endif %}</h1>
-    <div class="row">
-        {% for recipe in recipes %}
-        <div class="col-md-4 mb-4">
-            <div class="card h-100 shadow-sm border-0">
-                <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" 
-                     class="card-img-top" style="height: 200px; object-fit: cover;"
-                     onerror="this.onerror=null;this.src='{{ url_for('static', filename='uploads/default.jpg') }}';">
-                <div class="card-body">
-                    <h5 class="card-title font-weight-bold">{{ recipe.name }}</h5>
-                    <p class="text-muted small">Kategorie: {{ recipe.category_rel.name if recipe.category_rel else 'Allgemein' }}</p>
-                    <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="btn btn-warning btn-block">Ansehen</a>
+<div class="row">
+    {% for recipe in recipes %}
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm border-0">
+            <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" class="card-img-top" style="height: 200px; object-fit: cover;">
+            <div class="card-body text-center">
+                <h5 class="card-title font-weight-bold mb-1">{{ recipe.name }}</h5>
+                <div class="text-warning mb-2">
+                    {% for i in range(1, 6) %}
+                        {% if recipe.avg_rating >= i %}<i class="fas fa-star"></i>
+                        {% elif recipe.avg_rating >= i - 0.5 %}<i class="fas fa-star-half-alt"></i>
+                        {% else %}<i class="far fa-star"></i>{% endif %}
+                    {% endfor %}
+                    <small class="text-muted">({{ recipe.rating_count }})</small>
                 </div>
+                <p class="badge badge-warning">{{ recipe.category_rel.name if recipe.category_rel else 'Allgemein' }}</p>
+                <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="btn btn-warning btn-block mt-2">Ansehen</a>
             </div>
         </div>
-        {% endfor %}
     </div>
+    {% endfor %}
 </div>
 {% endblock %}
