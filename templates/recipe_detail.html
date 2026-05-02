@@ -1,58 +1,108 @@
 {% extends "base.html" %}
+
 {% block content %}
-<div class="container mt-4">
+<article class="container mt-4">
     <div class="row">
-        <div class="col-md-4">
-            <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" class="img-fluid rounded shadow mb-4">
+        <!-- Linke Spalte: Bild und Nährwerte -->
+        <aside class="col-md-4">
+            
+            <!-- HIER IST DER FIX -->
+            <!-- Wir fragen mit Jinja, ob das Bild da ist. Wenn nicht, zeigen wir direkt das Default-Bild. -->
+            {% if recipe.image_file and recipe.image_file != '' %}
+                <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" 
+                     class="img-fluid rounded shadow mb-4" 
+                     alt="Bild von {{ recipe.name }}">
+            {% else %}
+                <img src="{{ url_for('static', filename='uploads/default.jpg') }}" 
+                     class="img-fluid rounded shadow mb-4" 
+                     alt="Standardbild für {{ recipe.name }}">
+            {% endif %}
             
             <div class="p-3 bg-white border rounded shadow-sm mb-4">
                 <h5 class="border-bottom pb-2 text-warning">Nährwerte <small class="text-muted">(pro 100g)</small></h5>
                 <div class="row text-center mt-3">
-                    <div class="col-6 mb-2"><strong>{{ recipe.calories or 0 }}</strong><br><small>kcal</small></div>
-                    <div class="col-6 mb-2"><strong>{{ recipe.protein or 0 }}g</strong><br><small>Eiweiß</small></div>
-                    <div class="col-6"><strong>{{ recipe.carbs or 0 }}g</strong><br><small>KH</small></div>
-                    <div class="col-6"><strong>{{ recipe.fat or 0 }}g</strong><br><small>Fett</small></div>
+                    <div class="col-6 mb-2">
+                        <strong class="d-block">{{ recipe.calories or 0 }}</strong>
+                        <small class="text-uppercase">kcal</small>
+                    </div>
+                    <div class="col-6 mb-2">
+                        <strong class="d-block">{{ recipe.protein or 0 }}g</strong>
+                        <small class="text-uppercase">Eiweiß</small>
+                    </div>
+                    <div class="col-6">
+                        <strong class="d-block">{{ recipe.carbs or 0 }}g</strong>
+                        <small class="text-uppercase">KH</small>
+                    </div>
+                    <div class="col-6">
+                        <strong class="d-block">{{ recipe.fat or 0 }}g</strong>
+                        <small class="text-uppercase">Fett</small>
+                    </div>
                 </div>
             </div>
-        </div>
+        </aside>
 
-        <div class="col-md-8">
-            <div class="d-flex justify-content-between align-items-center">
-                <h1>{{ recipe.name }}</h1>
-                <div class="d-flex">
+        <!-- Rechte Spalte: Details, Zeiten, Zutaten -->
+        <section class="col-md-8">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h1 class="h2">{{ recipe.name }}</h1>
+                
+                <div class="btn-group" role="group" aria-label="Rezept Aktionen">
                     {% if current_user.is_authenticated and (recipe.author == current_user or current_user.is_admin) %}
-                        <a href="{{ url_for('edit_recipe', recipe_id=recipe.id) }}" class="btn btn-sm btn-outline-warning mr-2">Bearbeiten</a>
-                        <form action="{{ url_for('delete_recipe', recipe_id=recipe.id) }}" method="POST">
-                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Wirklich unwiderruflich löschen?')">Löschen</button>
+                        <a href="{{ url_for('edit_recipe', recipe_id=recipe.id) }}" class="btn btn-sm btn-outline-warning">
+                            <i class="fas fa-edit"></i> Bearbeiten
+                        </a>
+                    {% endif %}
+
+                    {% if current_user.is_authenticated and current_user.is_admin %}
+                        <form action="{{ url_for('delete_recipe', recipe_id=recipe.id) }}" method="POST" class="ml-2">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Soll dieses Rezept wirklich gelöscht werden?')">
+                                <i class="fas fa-trash"></i> Löschen
+                            </button>
                         </form>
                     {% endif %}
                 </div>
             </div>
-            <p class="text-muted">Kategorie: {{ recipe.category_rel.name if recipe.category_rel else 'Allgemein' }} | Erstellt von: {{ recipe.author.username }}</p>
+
+            <p class="text-muted small">
+                <span class="badge badge-warning">{{ recipe.category_rel.name if recipe.category_rel else 'Allgemein' }}</span>
+                | Erstellt von: <strong>{{ recipe.author.username }}</strong>
+            </p>
             <hr>
             
-            <div class="row mb-4 text-center">
-                <div class="col-3 border-right"><strong>{{ recipe.prep_time or 0 }} Min.</strong><br><small>Vorbereitung</small></div>
-                <div class="col-3 border-right"><strong>{{ recipe.cook_time or 0 }} Min.</strong><br><small>Kochen</small></div>
-                <div class="col-3 border-right"><strong>{{ recipe.rest_time or 0 }} Min.</strong><br><small>Ruhen</small></div>
-                <div class="col-3"><strong>{{ recipe.servings or 1 }}</strong><br><small>Portionen</small></div>
+            <div class="row mb-4 text-center bg-white py-3 rounded shadow-sm mx-0">
+                <div class="col-3 border-right">
+                    <strong class="d-block">{{ recipe.prep_time or 0 }} Min.</strong>
+                    <small class="text-muted">Vorbereitung</small>
+                </div>
+                <div class="col-3 border-right">
+                    <strong class="d-block">{{ recipe.cook_time or 0 }} Min.</strong>
+                    <small class="text-muted">Kochen</small>
+                </div>
+                <div class="col-3 border-right">
+                    <strong class="d-block">{{ recipe.rest_time or 0 }} Min.</strong>
+                    <small class="text-muted">Ruhen</small>
+                </div>
+                <div class="col-3">
+                    <strong class="d-block">{{ recipe.servings or 1 }}</strong>
+                    <small class="text-muted">Portionen</small>
+                </div>
             </div>
 
-            <h4 class="text-warning mt-4">Zutaten</h4>
-            <ul class="list-group list-group-flush mb-4 shadow-sm">
+            <h4 class="text-warning h5 mt-4">Zutaten</h4>
+            <ul class="list-group list-group-flush mb-4 shadow-sm border rounded">
                 {% for ing in recipe.ingredients %}
-                <li class="list-group-item d-flex">
-                    <span class="mr-3 text-muted" style="min-width: 80px;">{{ ing.amount }}</span>
-                    <strong>{{ ing.name }}</strong>
+                <li class="list-group-item d-flex justify-content-start">
+                    <span class="text-muted font-italic mr-3" style="min-width: 90px;">{{ ing.amount }}</span>
+                    <span>{{ ing.name }}</span>
                 </li>
                 {% endfor %}
             </ul>
 
-            <h4 class="text-warning">Zubereitung</h4>
-            <div class="p-3 bg-white border rounded shadow-sm" style="white-space: pre-line;">
+            <h4 class="text-warning h5">Zubereitung</h4>
+            <div class="p-4 bg-white border rounded shadow-sm" style="white-space: pre-line; line-height: 1.6;">
                 {{ recipe.instructions }}
             </div>
-        </div>
+        </section>
     </div>
-</div>
+</article>
 {% endblock %}

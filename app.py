@@ -8,7 +8,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__)
 
 # Konfiguration
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'genuss-geheimnis-2026')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'genuss-sicherheit-2026')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///genussreise.db'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 
@@ -82,7 +82,7 @@ def login():
         if user and check_password_hash(user.password, request.form.get('password')):
             login_user(user)
             return redirect(url_for('index'))
-        flash('Login fehlgeschlagen. Bitte Daten prüfen.', 'danger')
+        flash('Login fehlgeschlagen.', 'danger')
     return render_template('login.html')
 
 @app.route("/register", methods=['GET', 'POST'])
@@ -94,7 +94,7 @@ def register():
                     password=hashed_pw, is_admin=is_admin)
         db.session.add(user)
         db.session.commit()
-        flash('Konto erstellt! Du kannst dich jetzt einloggen.', 'success')
+        flash('Erfolgreich registriert!', 'success')
         return redirect(url_for('login'))
     return render_template('register.html')
 
@@ -105,7 +105,7 @@ def logout():
 
 @app.route("/forgot-password")
 def forgot_password():
-    return "Passwort-Reset Funktion kommt bald. <a href='/login'>Zurück zum Login</a>"
+    return "Funktion in Arbeit. <a href='/login'>Zurück</a>"
 
 @app.route("/recipe/new", methods=['GET', 'POST'])
 @login_required
@@ -128,9 +128,9 @@ def add_recipe():
             rest_time=request.form.get('rest_time') or 0,
             servings=request.form.get('servings') or 1,
             calories=request.form.get('calories') or 0,
-            protein=request.form.get('protein') or 0.0,
-            carbs=request.form.get('carbs') or 0.0,
-            fat=request.form.get('fat') or 0.0
+            protein=request.form.get('protein') or 0,
+            carbs=request.form.get('carbs') or 0,
+            fat=request.form.get('fat') or 0
         )
         db.session.add(recipe)
         db.session.flush()
@@ -155,8 +155,10 @@ def recipe_detail(recipe_id):
 @login_required
 def edit_recipe(recipe_id):
     recipe = Recipe.query.get_or_404(recipe_id)
+    # BEARBEITEN: Nur Autor oder Admin
     if recipe.author != current_user and not current_user.is_admin:
-        abort(403)
+        flash('Keine Berechtigung zum Bearbeiten.', 'danger')
+        return redirect(url_for('recipe_detail', recipe_id=recipe.id))
     
     if request.method == 'POST':
         file = request.files.get('recipe_image')
@@ -173,9 +175,9 @@ def edit_recipe(recipe_id):
         recipe.rest_time = request.form.get('rest_time') or 0
         recipe.servings = request.form.get('servings') or 1
         recipe.calories = request.form.get('calories') or 0
-        recipe.protein = request.form.get('protein') or 0.0
-        recipe.carbs = request.form.get('carbs') or 0.0
-        recipe.fat = request.form.get('fat') or 0.0
+        recipe.protein = request.form.get('protein') or 0
+        recipe.carbs = request.form.get('carbs') or 0
+        recipe.fat = request.form.get('fat') or 0
 
         Ingredient.query.filter_by(recipe_id=recipe.id).delete()
         ing_names = request.form.getlist('ing_name[]')
@@ -195,10 +197,13 @@ def edit_recipe(recipe_id):
 @login_required
 def delete_recipe(recipe_id):
     recipe = Recipe.query.get_or_404(recipe_id)
-    if recipe.author == current_user or current_user.is_admin:
+    # LÖSCHEN: NUR der Admin darf das!
+    if current_user.is_admin:
         db.session.delete(recipe)
         db.session.commit()
-        flash('Rezept gelöscht.', 'success')
+        flash('Rezept wurde vom Administrator gelöscht.', 'success')
+    else:
+        flash('Nur Administratoren dürfen Rezepte löschen.', 'danger')
     return redirect(url_for('index'))
 
 if __name__ == '__main__':

@@ -2,32 +2,31 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Genussreise</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genussreise - Rezepte teilen</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         .navbar-custom { background-color: #e67e22; }
-        .btn-nav-reg {
-            border: 1px solid white;
-            color: white !important;
-            transition: 0.3s;
-        }
-        .btn-nav-reg:hover {
-            background-color: rgba(255, 255, 255, 0.2);
-            text-decoration: none;
-        }
+        .btn-nav-reg { border: 1px solid white; color: white !important; transition: 0.3s; }
+        .btn-nav-reg:hover { background-color: rgba(255, 255, 255, 0.2); text-decoration: none; }
         .dropdown-menu { max-height: 400px; overflow-y: auto; }
+        .card-img-top { height: 200px; object-fit: cover; }
     </style>
 </head>
 <body class="bg-light">
     <nav class="navbar navbar-expand-lg navbar-dark navbar-custom shadow-sm">
         <div class="container">
             <a class="navbar-brand font-weight-bold" href="{{ url_for('index') }}">Genussreise</a>
-            <div class="collapse navbar-collapse">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navRes" aria-controls="navRes" aria-expanded="false" aria-label="Navigation umschalten">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navRes">
                 <ul class="navbar-nav mr-auto">
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle text-white" href="#" id="catDrop" data-toggle="dropdown">Kategorien</a>
-                        <div class="dropdown-menu shadow">
+                        <a class="nav-link dropdown-toggle text-white" href="#" id="catDrop" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Kategorien</a>
+                        <div class="dropdown-menu shadow-lg" aria-labelledby="catDrop">
                             {% for cat in all_categories %}
                                 <a class="dropdown-item" href="{{ url_for('recipes_in_category', category_id=cat.id) }}">{{ cat.name }}</a>
                             {% endfor %}
@@ -40,22 +39,29 @@
                         <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('logout') }}">Logout ({{ current_user.username }})</a></li>
                     {% else %}
                         <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('login') }}">Login</a></li>
-                        <li class="nav-item ml-lg-2"><a class="nav-link btn-nav-reg rounded px-3" href="{{ url_for('register') }}">Registrieren</a></li>
+                        <li class="nav-item ml-lg-2">
+                            <a class="nav-link btn-nav-reg px-3 rounded" href="{{ url_for('register') }}">Registrieren</a>
+                        </li>
                     {% endif %}
                 </ul>
             </div>
         </div>
     </nav>
-    <div class="container mt-4">
+    <main class="container mt-4">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Schließen">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
         {% block content %}{% endblock %}
-    </div>
+    </main>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
