@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card mx-auto shadow-sm border-0" style="max-width: 500px;">
+    <div class="card-header bg-warning text-white text-center h4 py-3">Mein Konto</div>
+    <div class="card-body">
+        <p><strong>Benutzer:</strong> {{ current_user.username }}</p>
+        <p><strong>Email:</strong> {{ current_user.email }}</p>
+        <hr>
+        <h5 class="text-danger">Gefahrenzone</h5>
+        <p class="small text-muted">Löschung entfernt auch alle deine Rezepte und Kommentare.</p>
+        <form action="{{ url_for('delete_user') }}" method="POST">
+            <button type="submit" class="btn btn-outline-danger btn-block" onclick="return confirm('Wirklich löschen?')">Konto unwiderruflich löschen</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
