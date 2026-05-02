@@ -7,9 +7,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
 app = Flask(__name__)
-
-# Konfiguration
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'genuss-reise-2026-final')
+app.config['SECRET_KEY'] = 'genuss-reise-2026-final-fixed'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///genussreise.db'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 
@@ -99,7 +97,7 @@ def login():
         if user and check_password_hash(user.password, request.form.get('password')):
             login_user(user)
             return redirect(url_for('index'))
-        flash('Login fehlgeschlagen. Bitte Daten prüfen.', 'danger')
+        flash('Login fehlgeschlagen.', 'danger')
     return render_template('login.html')
 
 @app.route("/register", methods=['GET', 'POST'])
@@ -107,8 +105,7 @@ def register():
     if request.method == 'POST':
         hashed_pw = generate_password_hash(request.form.get('password'))
         is_admin = (request.form.get('admin_key') == ADMIN_SECRET_KEY)
-        user = User(username=request.form.get('username'), email=request.form.get('email'), 
-                    password=hashed_pw, is_admin=is_admin)
+        user = User(username=request.form.get('username'), email=request.form.get('email'), password=hashed_pw, is_admin=is_admin)
         db.session.add(user)
         db.session.commit()
         return redirect(url_for('login'))
@@ -119,10 +116,9 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
-# --- FIX: DAS HAT GEFEHLT ---
 @app.route("/forgot-password")
 def forgot_password():
-    return "Passwort vergessen? Bitte kontaktiere den Admin. <a href='/login'>Zurück</a>"
+    return "Bitte wende dich an den Admin. <a href='/login'>Zurück</a>"
 
 @app.route("/recipe/new", methods=['GET', 'POST'])
 @login_required
@@ -187,14 +183,39 @@ def edit_recipe(recipe_id):
     recipe = Recipe.query.get_or_404(recipe_id)
     if recipe.author != current_user and not current_user.is_admin:
         abort(403)
+    
     if request.method == 'POST':
-        # ... Logik zum Speichern ...
+        file = request.files.get('recipe_image')
+        if file and file.filename != '':
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            recipe.image_file = filename
+
         recipe.name = request.form.get('recipe_name')
         recipe.instructions = request.form.get('instructions')
         recipe.category_id = request.form.get('category_id')
-        # (Alle anderen Felder hier auch aktualisieren...)
+        recipe.prep_time = request.form.get('prep_time') or 0
+        recipe.cook_time = request.form.get('cook_time') or 0
+        recipe.rest_time = request.form.get('rest_time') or 0
+        recipe.servings = request.form.get('servings') or 1
+        recipe.calories = request.form.get('calories') or 0
+        recipe.protein = request.form.get('protein') or 0
+        recipe.carbs = request.form.get('carbs') or 0
+        recipe.fat = request.form.get('fat') or 0
+
+        # Zutaten Reset
+        Ingredient.query.filter_by(recipe_id=recipe.id).delete()
+        ing_names = request.form.getlist('ing_name[]')
+        ing_amounts = request.form.getlist('ing_amount[]')
+        for name, amount in zip(ing_names, ing_amounts):
+            if name.strip():
+                ing = Ingredient(name=name, amount=amount, recipe_id=recipe.id)
+                db.session.add(ing)
+        
         db.session.commit()
+        flash('Rezept aktualisiert!', 'success')
         return redirect(url_for('recipe_detail', recipe_id=recipe.id))
+    
     return render_template('edit_recipe.html', recipe=recipe)
 
 @app.route("/recipe/<int:recipe_id>/delete", methods=['POST'])
@@ -210,8 +231,8 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
         if not Category.query.first():
-            cat_names = sorted(["Vorspeise", "Hauptspeise", "Dessert", "Frühstück", "Snack", "Vegan", "Vegetarisch", "Backen", "Getränke", "Salate", "Suppen", "Pasta & Nudeln", "Fleisch", "Fisch", "Schnelle Küche", "Asiatisch", "Italienisch", "Mediterran", "Aufläufe", "Eintöpfe", "Saucen & Dips", "Fingerfood", "Low Carb", "Gesund & Fit", "Meeresfrüchte"])
-            for name in cat_names:
+            cat_list = sorted(["Vorspeise", "Hauptspeise", "Dessert", "Frühstück", "Snack", "Vegan", "Vegetarisch", "Backen", "Getränke", "Salate", "Suppen", "Pasta & Nudeln", "Fleisch", "Fisch", "Schnelle Küche", "Asiatisch", "Italienisch", "Mediterran", "Aufläufe", "Eintöpfe", "Saucen & Dips", "Fingerfood", "Low Carb", "Gesund & Fit", "Meeresfrüchte"])
+            for name in cat_list:
                 db.session.add(Category(name=name))
             db.session.commit()
     app.run(debug=True)
