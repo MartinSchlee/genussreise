@@ -8,7 +8,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'genussreise-final-master-2026'
+app.config['SECRET_KEY'] = 'genussreise-pagination-master-2026'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///genussreise.db'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 
@@ -18,7 +18,7 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# --- DATENBANK-MODELLE ---
+# --- MODELLE ---
 
 class Favorite(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -59,7 +59,6 @@ class Recipe(db.Model):
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=True)
     ingredients = db.relationship('Ingredient', backref='recipe', lazy=True, cascade="all, delete-orphan")
     comments = db.relationship('Comment', backref='recipe', lazy=True, cascade="all, delete-orphan")
-    favorited_by = db.relationship('Favorite', backref='recipe', lazy=True, cascade="all, delete-orphan")
 
     @property
     def total_time_formatted(self):
@@ -96,39 +95,25 @@ def inject_categories():
 
 @app.route("/")
 def index():
+    page = request.args.get('page', 1, type=int)
     search = request.args.get('search')
-    recipes = Recipe.query.filter((Recipe.name.contains(search)) | (Recipe.instructions.contains(search))).all() if search else Recipe.query.all()
-    for r in recipes:
+    if search:
+        pagination = Recipe.query.filter((Recipe.name.contains(search)) | (Recipe.instructions.contains(search))).order_by(Recipe.id.desc()).paginate(page=page, per_page=9)
+    else:
+        pagination = Recipe.query.order_by(Recipe.id.desc()).paginate(page=page, per_page=9)
+    
+    for r in pagination.items:
         r.avg_rating = round(r.rating_sum / r.rating_count, 1) if r.rating_count > 0 else 0
-    return render_template('index.html', recipes=recipes, search_query=search)
+    return render_template('index.html', recipes=pagination, search_query=search)
 
 @app.route("/category/<int:category_id>")
 def recipes_in_category(category_id):
+    page = request.args.get('page', 1, type=int)
     cat = Category.query.get_or_404(category_id)
-    recipes = Recipe.query.filter_by(category_id=category_id).all()
-    for r in recipes:
+    pagination = Recipe.query.filter_by(category_id=category_id).order_by(Recipe.id.desc()).paginate(page=page, per_page=9)
+    for r in pagination.items:
         r.avg_rating = round(r.rating_sum / r.rating_count, 1) if r.rating_count > 0 else 0
-    return render_template('index.html', recipes=recipes, current_category=cat)
-
-# --- FAVORITEN ---
-
-@app.route("/favorite/<int:recipe_id>", methods=['POST'])
-@login_required
-def toggle_favorite(recipe_id):
-    fav = Favorite.query.filter_by(user_id=current_user.id, recipe_id=recipe_id).first()
-    if fav: db.session.delete(fav)
-    else: db.session.add(Favorite(user_id=current_user.id, recipe_id=recipe_id))
-    db.session.commit()
-    return redirect(request.referrer or url_for('recipe_detail', recipe_id=recipe_id))
-
-@app.route("/favorites")
-@login_required
-def favorites():
-    user_favs = Favorite.query.filter_by(user_id=current_user.id).all()
-    recipes = [f.recipe for f in user_favs]
-    return render_template('favorites.html', recipes=recipes)
-
-# --- ACCOUNT & PROFIL ---
+    return render_template('index.html', recipes=pagination, current_category=cat)
 
 @app.route("/login", methods=['GET', 'POST'])
 def login():
@@ -170,15 +155,12 @@ def delete_user():
     logout_user()
     db.session.delete(u)
     db.session.commit()
-    flash('Konto gelöscht.', 'info')
     return redirect(url_for('index'))
 
 @app.route("/forgot-password", methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST': flash('Simulation: Link gesendet.', 'info'); return redirect(url_for('login'))
     return render_template('forgot_password.html')
-
-# --- REZEPT VERWALTUNG ---
 
 @app.route("/recipe/new", methods=['GET', 'POST'])
 @login_required
@@ -221,25 +203,18 @@ def recipe_detail(recipe_id):
 @login_required
 def edit_recipe(recipe_id):
     recipe = Recipe.query.get_or_404(recipe_id)
-    if recipe.author != current_user and not current_user.is_admin:
-        abort(403)
+    if recipe.author != current_user and not current_user.is_admin: abort(403)
     if request.method == 'POST':
         file = request.files.get('recipe_image')
         if file and file.filename != '':
             fname = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
             recipe.image_file = fname
-        recipe.name = request.form.get('recipe_name')
-        recipe.instructions = request.form.get('instructions')
+        recipe.name, recipe.instructions = request.form.get('recipe_name'), request.form.get('instructions')
         recipe.category_id = request.form.get('category_id')
-        recipe.prep_time = int(request.form.get('prep_time') or 0)
-        recipe.cook_time = int(request.form.get('cook_time') or 0)
-        recipe.rest_time = int(request.form.get('rest_time') or 0)
-        recipe.servings = int(request.form.get('servings') or 1)
-        recipe.calories = int(request.form.get('calories') or 0)
-        recipe.protein = float(request.form.get('protein') or 0)
-        recipe.carbs = float(request.form.get('carbs') or 0)
-        recipe.fat = float(request.form.get('fat') or 0)
+        recipe.prep_time, recipe.cook_time, recipe.rest_time = int(request.form.get('prep_time') or 0), int(request.form.get('cook_time') or 0), int(request.form.get('rest_time') or 0)
+        recipe.servings, recipe.calories = int(request.form.get('servings') or 1), int(request.form.get('calories') or 0)
+        recipe.protein, recipe.carbs, recipe.fat = float(request.form.get('protein') or 0), float(request.form.get('carbs') or 0), float(request.form.get('fat') or 0)
         Ingredient.query.filter_by(recipe_id=recipe.id).delete()
         names, amounts = request.form.getlist('ing_name[]'), request.form.getlist('ing_amount[]')
         for n, a in zip(names, amounts):
@@ -253,26 +228,31 @@ def edit_recipe(recipe_id):
 def delete_recipe(recipe_id):
     recipe = Recipe.query.get_or_404(recipe_id)
     if current_user.is_admin or recipe.author == current_user:
-        db.session.delete(recipe)
-        db.session.commit()
+        db.session.delete(recipe); db.session.commit()
         flash('Rezept gelöscht.', 'success')
     return redirect(url_for('index'))
 
-# --- ADMIN ---
+@app.route("/favorite/<int:recipe_id>", methods=['POST'])
+@login_required
+def toggle_favorite(recipe_id):
+    fav = Favorite.query.filter_by(user_id=current_user.id, recipe_id=recipe_id).first()
+    if fav: db.session.delete(fav)
+    else: db.session.add(Favorite(user_id=current_user.id, recipe_id=recipe_id))
+    db.session.commit()
+    return redirect(request.referrer or url_for('recipe_detail', recipe_id=recipe_id))
+
+@app.route("/favorites")
+@login_required
+def favorites():
+    user_favs = Favorite.query.filter_by(user_id=current_user.id).all()
+    recipes = [f.recipe for f in user_favs]
+    return render_template('favorites.html', recipes=recipes)
 
 @app.route("/admin/users")
 @login_required
 def admin_users():
     if not current_user.is_admin: abort(403)
     return render_template('admin_users.html', users=User.query.all())
-
-@app.route("/admin/delete_user/<int:user_id>", methods=['POST'])
-@login_required
-def admin_delete_user(user_id):
-    if not current_user.is_admin: abort(403)
-    u = User.query.get_or_404(user_id)
-    if u != current_user: db.session.delete(u); db.session.commit()
-    return redirect(url_for('admin_users'))
 
 if __name__ == '__main__':
     with app.app_context():

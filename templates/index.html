@@ -1,36 +1,40 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="mb-4 text-center">
-    <h2 class="text-warning font-weight-bold mb-4">Finde dein nächstes Lieblingsrezept</h2>
+    <h2 class="text-warning font-weight-bold mb-4">{% if current_category %}Kategorie: {{ current_category.name }}{% else %}Entdecke neue Genussmomente{% endif %}</h2>
     <form action="{{ url_for('index') }}" method="GET" class="input-group shadow-sm mb-4 mx-auto" style="max-width: 600px;">
         <input type="text" name="search" class="form-control" placeholder="Nach Rezepten suchen..." value="{{ search_query or '' }}">
         <div class="input-group-append"><button class="btn btn-warning text-white" type="submit">Suchen</button></div>
     </form>
-    
-    <!-- KATEGORIE-BUTTONS -->
     <div class="mb-5">
         <a href="{{ url_for('index') }}" class="badge badge-pill badge-secondary p-2 mx-1 shadow-sm">Alle</a>
-        {% for cat in all_categories[:12] %} <!-- Zeigt die ersten 12 Kategorien als Button -->
-            <a href="{{ url_for('recipes_in_category', category_id=cat.id) }}" class="badge badge-pill badge-light border p-2 mx-1 shadow-sm">{{ cat.name }}</a>
-        {% endfor %}
+        {% for cat in all_categories[:12] %}<a href="{{ url_for('recipes_in_category', category_id=cat.id) }}" class="badge badge-pill {% if current_category and current_category.id == cat.id %}badge-warning text-white{% else %}badge-light border{% endif %} p-2 mx-1 shadow-sm">{{ cat.name }}</a>{% endfor %}
     </div>
 </div>
 
 <div class="row">
-    {% for recipe in recipes %}
+    {% for recipe in recipes.items %}
     <div class="col-md-4 mb-4">
         <div class="card h-100 border-0 shadow-sm" style="transition: 0.3s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
             <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" class="card-img-top" style="height: 200px; object-fit: cover;">
             <div class="card-body text-center">
                 <h5 class="font-weight-bold">{{ recipe.name }}</h5>
-                <p class="small text-muted">
-                    <i class="fas fa-clock text-warning"></i> {{ recipe.total_time_formatted }} | 
-                    <i class="fas fa-star text-warning"></i> {{ recipe.avg_rating }}
-                </p>
+                <p class="small text-muted"><i class="fas fa-clock text-warning"></i> {{ recipe.total_time_formatted }} | <i class="fas fa-star text-warning"></i> {{ recipe.avg_rating }}</p>
                 <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="btn btn-outline-warning btn-sm btn-block">Rezept ansehen</a>
             </div>
         </div>
     </div>
     {% endfor %}
 </div>
+
+{% if recipes.pages > 1 %}
+<nav class="mt-5"><ul class="pagination justify-content-center">
+    <li class="page-item {% if not recipes.has_prev %}disabled{% endif %}"><a class="page-link" href="{{ url_for(request.endpoint, page=recipes.prev_num, search=search_query, **request.view_args) if recipes.has_prev else '#' }}"><i class="fas fa-chevron-left"></i></a></li>
+    {% for page_num in recipes.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if page_num %}<li class="page-item {% if recipes.page == page_num %}active{% endif %}"><a class="page-link {% if recipes.page == page_num %}bg-warning border-warning text-white{% endif %}" href="{{ url_for(request.endpoint, page=page_num, search=search_query, **request.view_args) }}">{{ page_num }}</a></li>
+        {% else %}<li class="page-item disabled"><span class="page-link">...</span></li>{% endif %}
+    {% endfor %}
+    <li class="page-item {% if not recipes.has_next %}disabled{% endif %}"><a class="page-link" href="{{ url_for(request.endpoint, page=recipes.next_num, search=search_query, **request.view_args) if recipes.has_next else '#' }}"><i class="fas fa-chevron-right"></i></a></li>
+</ul></nav>
+{% endif %}
 {% endblock %}
