@@ -1,60 +1,73 @@
 {% extends "base.html" %}
 {% block content %}
-<style>.text-gold { color: #f39c12; } .star-rating { direction: rtl; display: inline-block; } .star-rating input { display: none; } .star-rating label { color: #ddd; font-size: 1.5rem; cursor: pointer; } .star-rating input:checked ~ label, .star-rating label:hover, .star-rating label:hover ~ label { color: #f39c12; }</style>
 <div class="row">
     <aside class="col-md-4 text-center">
         <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" class="img-fluid rounded shadow mb-4">
         <div class="p-3 bg-white border rounded shadow-sm">
-            <h5 class="text-warning border-bottom pb-2">Nährwerte (100g)</h5>
-            <div class="row mt-3">
-                <div class="col-6 mb-3"><strong>{{ recipe.calories or 0 }}</strong><br><small>kcal</small></div>
-                <div class="col-6 mb-3"><strong>{{ recipe.protein or 0 }}g</strong><br><small>Eiweiß</small></div>
-                <div class="col-6"><strong>{{ recipe.carbs or 0 }}g</strong><br><small>KH</small></div>
-                <div class="col-6"><strong>{{ recipe.fat or 0 }}g</strong><br><small>Fett</small></div>
+            <h5 class="text-warning border-bottom pb-2 font-weight-bold">Nährwerte (100g)</h5>
+            <div class="row mt-2">
+                <div class="col-6 mb-2"><strong>{{ recipe.calories }}</strong><br><small>kcal</small></div>
+                <div class="col-6 mb-2"><strong>{{ recipe.protein }}g</strong><br><small>Eiw.</small></div>
+                <div class="col-6"><strong>{{ recipe.carbs }}g</strong><br><small>KH</small></div>
+                <div class="col-6"><strong>{{ recipe.fat }}g</strong><br><small>Fett</small></div>
             </div>
         </div>
     </aside>
+
     <section class="col-md-8">
-        <div class="d-flex justify-content-between align-items-start">
-            <h1>{{ recipe.name }}</h1>
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="d-flex align-items-center">
+                <h1 class="font-weight-bold mb-0 mr-3">{{ recipe.name }}</h1>
+                {% if current_user.is_authenticated %}
+                <form action="{{ url_for('toggle_favorite', recipe_id=recipe.id) }}" method="POST">
+                    <button type="submit" class="btn btn-link p-0 text-warning" style="font-size: 1.8rem;">
+                        {% if is_fav %}<i class="fas fa-heart"></i>{% else %}<i class="far fa-heart"></i>{% endif %}
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+
+            <!-- AKTIONEN -->
             <div class="btn-group">
                 {% if current_user.is_authenticated and (recipe.author == current_user or current_user.is_admin) %}
                     <a href="{{ url_for('edit_recipe', recipe_id=recipe.id) }}" class="btn btn-sm btn-outline-warning">Bearbeiten</a>
                 {% endif %}
-                {% if current_user.is_admin %}
-                    <form action="{{ url_for('delete_recipe', recipe_id=recipe.id) }}" method="POST" class="ml-2">
+                {% if current_user.is_authenticated and current_user.is_admin %}
+                    <form action="{{ url_for('delete_recipe', recipe_id=recipe.id) }}" method="POST" class="ml-2" onsubmit="return confirm('Rezept löschen?');">
                         <button type="submit" class="btn btn-sm btn-outline-danger">Löschen</button>
                     </form>
                 {% endif %}
             </div>
         </div>
-        <div class="text-gold mb-3">
-            {% for i in range(1, 6) %}{% if avg_rating >= i %}<i class="fas fa-star"></i>{% else %}<i class="far fa-star"></i>{% endif %}{% endfor %}
-            <small class="text-muted ml-1">({{ recipe.rating_count }})</small>
-        </div>
-        <hr>
-        <h4>Zutaten</h4>
-        <ul class="list-group mb-4 shadow-sm">
-            {% for ing in recipe.ingredients %}<li class="list-group-item"><strong>{{ ing.amount }}</strong> {{ ing.name }}</li>{% endfor %}
-        </ul>
-        <h4>Zubereitung</h4>
-        <div class="p-3 bg-white border rounded mb-5" style="white-space: pre-line;">{{ recipe.instructions }}</div>
 
-        <h4 class="text-warning">Kommentare</h4>
+        <div class="row text-center mb-4 p-3 bg-white border rounded mx-0 shadow-sm">
+            <div class="col-3 border-right"><small class="text-muted d-block">Vorbereitung</small><strong>{{ recipe.prep_time }} Min</strong></div>
+            <div class="col-3 border-right"><small class="text-muted d-block">Garzeit</small><strong>{{ recipe.cook_time }} Min</strong></div>
+            <div class="col-3 border-right"><small class="text-muted d-block">Ruhezeit</small><strong>{{ recipe.rest_time }} Min</strong></div>
+            <div class="col-3"><small class="text-muted d-block text-warning font-weight-bold">Gesamt</small><strong class="text-warning">{{ recipe.total_time_formatted }}</strong></div>
+        </div>
+
+        <h4 class="text-warning font-weight-bold">Zutaten</h4>
+        <ul class="list-group mb-4 shadow-sm">
+            {% for ing in recipe.ingredients %}
+                <li class="list-group-item"><strong>{{ ing.amount }}</strong> {{ ing.name }}</li>
+            {% endfor %}
+        </ul>
+
+        <h4 class="text-warning font-weight-bold">Zubereitung</h4>
+        <div class="p-4 bg-white border rounded mb-5 shadow-sm" style="white-space: pre-line;">{{ recipe.instructions }}</div>
+
+        <h5>Kommentare</h5>
+        <hr>
         {% if current_user.is_authenticated %}
-        <form method="POST" class="card p-3 mb-4 border-0 shadow-sm bg-light">
-            <div class="star-rating mb-2">
-                {% for i in range(5, 0, -1) %}<input type="radio" id="s{{i}}" name="rating" value="{{i}}"><label for="s{{i}}"><i class="fas fa-star"></i></label>{% endfor %}
-            </div>
-            <textarea name="content" class="form-control mb-2" rows="2" placeholder="Dein Feedback..."></textarea>
-            <button type="submit" class="btn btn-warning btn-sm">Senden</button>
+        <form method="POST" class="mb-4">
+            <input type="number" name="rating" class="form-control col-2 mb-2" placeholder="Sterne (1-5)" min="1" max="5">
+            <textarea name="content" class="form-control mb-2" rows="2" placeholder="Dein Kommentar..."></textarea>
+            <button class="btn btn-warning btn-sm text-white">Senden</button>
         </form>
         {% endif %}
-        {% for comment in recipe.comments | reverse %}
-            <div class="card mb-2 p-3 border-0 shadow-sm">
-                <div class="d-flex justify-content-between small text-muted"><strong>{{ comment.author.username }}</strong><span>{{ comment.date_posted.strftime('%d.%m.%Y') }}</span></div>
-                <p class="mb-0 mt-2">{{ comment.content }}</p>
-            </div>
+        {% for comment in recipe.comments|reverse %}
+        <div class="card mb-2 p-2 border-0 bg-light"><small><strong>{{ comment.author.username }}</strong> - {{ comment.rating }}*</small><p class="mb-0 small">{{ comment.content }}</p></div>
         {% endfor %}
     </section>
 </div>

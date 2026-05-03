@@ -15,11 +15,7 @@
                 <ul class="navbar-nav mr-auto">
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-white" href="#" data-toggle="dropdown">Kategorien</a>
-                        <div class="dropdown-menu">
-                            {% for cat in all_categories %}
-                                <a class="dropdown-item" href="{{ url_for('recipes_in_category', category_id=cat.id) }}">{{ cat.name }}</a>
-                            {% endfor %}
-                        </div>
+                        <div class="dropdown-menu">{% for cat in all_categories %}<a class="dropdown-item" href="{{ url_for('recipes_in_category', category_id=cat.id) }}">{{ cat.name }}</a>{% endfor %}</div>
                     </li>
                     <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('add_recipe') }}">Neues Rezept</a></li>
                 </ul>
@@ -29,6 +25,7 @@
                             <a class="nav-link dropdown-toggle text-white font-weight-bold" href="#" data-toggle="dropdown">{{ current_user.username }}</a>
                             <div class="dropdown-menu dropdown-menu-right">
                                 <a class="dropdown-item" href="{{ url_for('profile') }}">Profil</a>
+                                <a class="dropdown-item" href="{{ url_for('favorites') }}"><i class="fas fa-heart text-warning"></i> Favoriten</a>
                                 {% if current_user.is_admin %}<a class="dropdown-item" href="{{ url_for('admin_users') }}">Admin: User</a>{% endif %}
                                 <div class="dropdown-divider"></div>
                                 <a class="dropdown-item text-danger" href="{{ url_for('logout') }}">Logout</a>
@@ -43,9 +40,7 @@
         </div>
     </nav>
     <div class="container mt-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}
-            <div class="alert alert-{{ category }}">{{ message }}</div>
-        {% endfor %}{% endif %}{% endwith %}
+        {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}
         {% block content %}{% endblock %}
     </div>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>

@@ -6,9 +6,11 @@
         <input type="text" name="search" class="form-control" placeholder="Nach Rezepten suchen..." value="{{ search_query or '' }}">
         <div class="input-group-append"><button class="btn btn-warning text-white" type="submit">Suchen</button></div>
     </form>
+    
+    <!-- KATEGORIE-BUTTONS -->
     <div class="mb-5">
-        <a href="{{ url_for('index') }}" class="badge badge-pill badge-secondary p-2 mx-1">Alle</a>
-        {% for cat in all_categories[:10] %}
+        <a href="{{ url_for('index') }}" class="badge badge-pill badge-secondary p-2 mx-1 shadow-sm">Alle</a>
+        {% for cat in all_categories[:12] %} <!-- Zeigt die ersten 12 Kategorien als Button -->
             <a href="{{ url_for('recipes_in_category', category_id=cat.id) }}" class="badge badge-pill badge-light border p-2 mx-1 shadow-sm">{{ cat.name }}</a>
         {% endfor %}
     </div>
@@ -17,12 +19,15 @@
 <div class="row">
     {% for recipe in recipes %}
     <div class="col-md-4 mb-4">
-        <div class="card h-100 border-0 shadow-sm">
+        <div class="card h-100 border-0 shadow-sm" style="transition: 0.3s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
             <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" class="card-img-top" style="height: 200px; object-fit: cover;">
-            <div class="card-body">
+            <div class="card-body text-center">
                 <h5 class="font-weight-bold">{{ recipe.name }}</h5>
-                <p class="small text-muted"><i class="fas fa-clock text-warning"></i> {{ recipe.prep_time + recipe.cook_time }} Min | <i class="fas fa-star text-warning"></i> {{ recipe.avg_rating }}</p>
-                <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="btn btn-outline-warning btn-sm btn-block">Ansehen</a>
+                <p class="small text-muted">
+                    <i class="fas fa-clock text-warning"></i> {{ recipe.total_time_formatted }} | 
+                    <i class="fas fa-star text-warning"></i> {{ recipe.avg_rating }}
+                </p>
+                <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="btn btn-outline-warning btn-sm btn-block">Rezept ansehen</a>
             </div>
         </div>
     </div>
