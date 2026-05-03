@@ -8,10 +8,11 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'genussreise-full-version-2026'
+app.config['SECRET_KEY'] = 'genussreise-admin-edition-2026'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///genussreise.db'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 
+# Dein Schlüssel, um sich als Admin zu registrieren
 ADMIN_SECRET_KEY = "GEHEIM123"
 
 db = SQLAlchemy(app)
@@ -100,7 +101,7 @@ def login():
         if user and check_password_hash(user.password, request.form.get('password')):
             login_user(user)
             return redirect(url_for('index'))
-        flash('Login fehlgeschlagen.', 'danger')
+        flash('Login fehlgeschlagen. Bitte Daten prüfen.', 'danger')
     return render_template('login.html')
 
 @app.route("/register", methods=['GET', 'POST'])
@@ -117,6 +118,7 @@ def register():
                     password=hashed_pw, is_admin=is_admin)
         db.session.add(user)
         db.session.commit()
+        flash('Konto erstellt!', 'success')
         return redirect(url_for('login'))
     return render_template('register.html')
 
@@ -128,7 +130,7 @@ def logout():
 @app.route("/forgot-password", methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
-        flash('Simulation: Link zum Zurücksetzen wurde gesendet.', 'info')
+        flash('Simulation: Wenn das Konto existiert, wurde ein Reset-Link gesendet.', 'info')
         return redirect(url_for('login'))
     return render_template('forgot_password.html')
 
@@ -144,8 +146,34 @@ def delete_user():
     logout_user()
     db.session.delete(user)
     db.session.commit()
-    flash('Konto gelöscht.', 'info')
+    flash('Dein Konto wurde gelöscht.', 'info')
     return redirect(url_for('index'))
+
+# --- ADMIN BENUTZERVERWALTUNG ---
+
+@app.route("/admin/users")
+@login_required
+def admin_users():
+    if not current_user.is_admin:
+        abort(403)
+    users = User.query.all()
+    return render_template('admin_users.html', users=users)
+
+@app.route("/admin/delete_user/<int:user_id>", methods=['POST'])
+@login_required
+def admin_delete_user(user_id):
+    if not current_user.is_admin:
+        abort(403)
+    user_to_delete = User.query.get_or_404(user_id)
+    if user_to_delete == current_user:
+        flash('Du kannst dich nicht selbst über die Admin-Liste löschen.', 'danger')
+        return redirect(url_for('admin_users'))
+    db.session.delete(user_to_delete)
+    db.session.commit()
+    flash(f'Benutzer {user_to_delete.username} gelöscht.', 'success')
+    return redirect(url_for('admin_users'))
+
+# --- REZEPT VERWALTUNG ---
 
 @app.route("/recipe/new", methods=['GET', 'POST'])
 @login_required
@@ -156,13 +184,16 @@ def add_recipe():
         if file and file.filename != '':
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        
         recipe = Recipe(
             name=request.form.get('recipe_name'),
             instructions=request.form.get('instructions'),
             category_id=request.form.get('category_id'),
             image_file=filename,
             author=current_user,
+            prep_time=request.form.get('prep_time') or 0,
+            cook_time=request.form.get('cook_time') or 0,
+            rest_time=request.form.get('rest_time') or 0,
+            servings=request.form.get('servings') or 1,
             calories=request.form.get('calories') or 0,
             protein=request.form.get('protein') or 0.0,
             carbs=request.form.get('carbs') or 0.0,
@@ -170,13 +201,11 @@ def add_recipe():
         )
         db.session.add(recipe)
         db.session.flush()
-        
         ing_names = request.form.getlist('ing_name[]')
         ing_amounts = request.form.getlist('ing_amount[]')
         for name, amount in zip(ing_names, ing_amounts):
             if name.strip():
-                ing = Ingredient(name=name, amount=amount, recipe_id=recipe.id)
-                db.session.add(ing)
+                db.session.add(Ingredient(name=name, amount=amount, recipe_id=recipe.id))
         db.session.commit()
         return redirect(url_for('index'))
     return render_template('add_recipe.html')
@@ -196,23 +225,55 @@ def recipe_detail(recipe_id):
             db.session.add(comment)
             db.session.commit()
             return redirect(url_for('recipe_detail', recipe_id=recipe.id))
-    
     avg_rating = round(recipe.rating_sum / recipe.rating_count, 1) if recipe.rating_count > 0 else 0
     return render_template('recipe_detail.html', recipe=recipe, avg_rating=avg_rating)
+
+@app.route("/recipe/<int:recipe_id>/edit", methods=['GET', 'POST'])
+@login_required
+def edit_recipe(recipe_id):
+    recipe = Recipe.query.get_or_404(recipe_id)
+    if recipe.author != current_user and not current_user.is_admin:
+        abort(403)
+    if request.method == 'POST':
+        file = request.files.get('recipe_image')
+        if file and file.filename != '':
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            recipe.image_file = filename
+        recipe.name = request.form.get('recipe_name')
+        recipe.instructions = request.form.get('instructions')
+        recipe.category_id = request.form.get('category_id')
+        recipe.prep_time = request.form.get('prep_time') or 0
+        recipe.cook_time = request.form.get('cook_time') or 0
+        recipe.rest_time = request.form.get('rest_time') or 0
+        recipe.servings = request.form.get('servings') or 1
+        recipe.calories = request.form.get('calories') or 0
+        recipe.protein = request.form.get('protein') or 0.0
+        recipe.carbs = request.form.get('carbs') or 0.0
+        recipe.fat = request.form.get('fat') or 0.0
+        Ingredient.query.filter_by(recipe_id=recipe.id).delete()
+        ing_names = request.form.getlist('ing_name[]')
+        ing_amounts = request.form.getlist('ing_amount[]')
+        for name, amount in zip(ing_names, ing_amounts):
+            if name.strip():
+                db.session.add(Ingredient(name=name, amount=amount, recipe_id=recipe.id))
+        db.session.commit()
+        return redirect(url_for('recipe_detail', recipe_id=recipe.id))
+    return render_template('edit_recipe.html', recipe=recipe)
 
 @app.route("/recipe/<int:recipe_id>/delete", methods=['POST'])
 @login_required
 def delete_recipe(recipe_id):
     recipe = Recipe.query.get_or_404(recipe_id)
-    if current_user.is_admin:
+    if current_user.is_admin or recipe.author == current_user:
         db.session.delete(recipe)
         db.session.commit()
+        flash('Rezept gelöscht.', 'success')
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-        # DIE LANGE KATEGORIEN-LISTE
         if not Category.query.first():
             cat_list = sorted([
                 "Vorspeise", "Hauptspeise", "Dessert", "Frühstück", "Snack", 

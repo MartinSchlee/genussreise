@@ -2,77 +2,58 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Genussreise</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <style>
-        .navbar-custom { background-color: #e67e22; }
-        .dropdown-menu { max-height: 400px; overflow-y: auto; }
-    </style>
+    <style>.navbar-custom { background-color: #e67e22; } .dropdown-menu { max-height: 400px; overflow-y: auto; }</style>
 </head>
 <body class="bg-light">
     <nav class="navbar navbar-expand-lg navbar-dark navbar-custom shadow-sm">
         <div class="container">
             <a class="navbar-brand font-weight-bold" href="{{ url_for('index') }}">Genussreise</a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
+            <div class="collapse navbar-collapse">
                 <ul class="navbar-nav mr-auto">
-                    <!-- KATEGORIEN DROPDOWN -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle text-white" href="#" id="catDrop" data-toggle="dropdown">
-                            Kategorien
-                        </a>
-                        <div class="dropdown-menu shadow">
+                        <a class="nav-link dropdown-toggle text-white" href="#" data-toggle="dropdown">Kategorien</a>
+                        <div class="dropdown-menu">
                             {% for cat in all_categories %}
                                 <a class="dropdown-item" href="{{ url_for('recipes_in_category', category_id=cat.id) }}">{{ cat.name }}</a>
                             {% endfor %}
                         </div>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="{{ url_for('add_recipe') }}">Neues Rezept</a>
-                    </li>
+                    <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('add_recipe') }}">Neues Rezept</a></li>
                 </ul>
                 <ul class="navbar-nav">
                     {% if current_user.is_authenticated %}
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle text-white" href="#" data-toggle="dropdown">
+                            <a class="nav-link dropdown-toggle text-white font-weight-bold" href="#" data-toggle="dropdown">
                                 <i class="fas fa-user-circle"></i> {{ current_user.username }}
                             </a>
                             <div class="dropdown-menu dropdown-menu-right shadow">
                                 <a class="dropdown-item" href="{{ url_for('profile') }}">Mein Konto</a>
+                                {% if current_user.is_admin %}
+                                    <div class="dropdown-divider"></div>
+                                    <h6 class="dropdown-header">Admin-Bereich</h6>
+                                    <a class="dropdown-item" href="{{ url_for('admin_users') }}"><i class="fas fa-users-cog"></i> User verwalten</a>
+                                {% endif %}
                                 <div class="dropdown-divider"></div>
                                 <a class="dropdown-item text-danger" href="{{ url_for('logout') }}">Logout</a>
                             </div>
                         </li>
                     {% else %}
                         <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('login') }}">Login</a></li>
-                        <!-- REGISTRIERUNGS BUTTON -->
-                        <li class="nav-item ml-lg-2">
-                            <a class="btn btn-outline-light btn-sm mt-lg-1" href="{{ url_for('register') }}">Registrieren</a>
-                        </li>
+                        <li class="nav-item ml-2"><a class="btn btn-outline-light btn-sm mt-1" href="{{ url_for('register') }}">Registrieren</a></li>
                     {% endif %}
                 </ul>
             </div>
         </div>
     </nav>
-
     <div class="container mt-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show">
-                        {{ message }}
-                        <button type="button" class="close" data-dismiss="alert">&times;</button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+        {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}{% endif %}{% endwith %}
         {% block content %}{% endblock %}
     </div>
-
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
