@@ -1,22 +1,28 @@
 {% extends "base.html" %}
 {% block content %}
+<div class="mb-4 text-center">
+    <h2 class="text-warning font-weight-bold mb-4">Finde dein nächstes Lieblingsrezept</h2>
+    <form action="{{ url_for('index') }}" method="GET" class="input-group shadow-sm mb-4 mx-auto" style="max-width: 600px;">
+        <input type="text" name="search" class="form-control" placeholder="Nach Rezepten suchen..." value="{{ search_query or '' }}">
+        <div class="input-group-append"><button class="btn btn-warning text-white" type="submit">Suchen</button></div>
+    </form>
+    <div class="mb-5">
+        <a href="{{ url_for('index') }}" class="badge badge-pill badge-secondary p-2 mx-1">Alle</a>
+        {% for cat in all_categories[:10] %}
+            <a href="{{ url_for('recipes_in_category', category_id=cat.id) }}" class="badge badge-pill badge-light border p-2 mx-1 shadow-sm">{{ cat.name }}</a>
+        {% endfor %}
+    </div>
+</div>
+
 <div class="row">
     {% for recipe in recipes %}
     <div class="col-md-4 mb-4">
-        <div class="card h-100 shadow-sm border-0">
+        <div class="card h-100 border-0 shadow-sm">
             <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" class="card-img-top" style="height: 200px; object-fit: cover;">
-            <div class="card-body text-center">
-                <h5 class="card-title font-weight-bold mb-1">{{ recipe.name }}</h5>
-                <div class="text-warning mb-2">
-                    {% for i in range(1, 6) %}
-                        {% if recipe.avg_rating >= i %}<i class="fas fa-star"></i>
-                        {% elif recipe.avg_rating >= i - 0.5 %}<i class="fas fa-star-half-alt"></i>
-                        {% else %}<i class="far fa-star"></i>{% endif %}
-                    {% endfor %}
-                    <small class="text-muted">({{ recipe.rating_count }})</small>
-                </div>
-                <p class="badge badge-warning">{{ recipe.category_rel.name if recipe.category_rel else 'Allgemein' }}</p>
-                <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="btn btn-warning btn-block mt-2">Ansehen</a>
+            <div class="card-body">
+                <h5 class="font-weight-bold">{{ recipe.name }}</h5>
+                <p class="small text-muted"><i class="fas fa-clock text-warning"></i> {{ recipe.prep_time + recipe.cook_time }} Min | <i class="fas fa-star text-warning"></i> {{ recipe.avg_rating }}</p>
+                <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="btn btn-outline-warning btn-sm btn-block">Ansehen</a>
             </div>
         </div>
     </div>
