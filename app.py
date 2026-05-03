@@ -8,7 +8,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'genussreise-pagination-master-2026'
+app.config['SECRET_KEY'] = 'genussreise-final-master-2026'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///genussreise.db'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 
@@ -17,10 +17,11 @@ ADMIN_SECRET_KEY = "GEHEIM123"
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
-# --- DIESE BEIDEN ZEILEN HINZUFÜGEN ---
+
+# Systemmeldungen auf Deutsch
 login_manager.login_message = "Bitte melde dich an, um auf diese Seite zuzugreifen."
-login_manager.login_message_category = "info" 
-# --------------------------------------
+login_manager.login_message_category = "info"
+
 # --- MODELLE ---
 
 class Favorite(db.Model):
@@ -104,7 +105,6 @@ def index():
         pagination = Recipe.query.filter((Recipe.name.contains(search)) | (Recipe.instructions.contains(search))).order_by(Recipe.id.desc()).paginate(page=page, per_page=9)
     else:
         pagination = Recipe.query.order_by(Recipe.id.desc()).paginate(page=page, per_page=9)
-    
     for r in pagination.items:
         r.avg_rating = round(r.rating_sum / r.rating_count, 1) if r.rating_count > 0 else 0
     return render_template('index.html', recipes=pagination, search_query=search)

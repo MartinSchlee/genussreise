@@ -14,7 +14,7 @@
         </div>
     </aside>
     <section class="col-md-8">
-        <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="d-flex align-items-center justify-content-between mb-1">
             <div class="d-flex align-items-center">
                 <h1 class="font-weight-bold mb-0 mr-3">{{ recipe.name }}</h1>
                 {% if current_user.is_authenticated %}
@@ -23,9 +23,11 @@
             </div>
             <div class="btn-group">
                 {% if current_user.is_authenticated and (recipe.author == current_user or current_user.is_admin) %}<a href="{{ url_for('edit_recipe', recipe_id=recipe.id) }}" class="btn btn-sm btn-outline-warning">Bearbeiten</a>{% endif %}
-                {% if current_user.is_authenticated and current_user.is_admin %}<form action="{{ url_for('delete_recipe', recipe_id=recipe.id) }}" method="POST" class="ml-2" onsubmit="return confirm('Löschen?');"><button type="submit" class="btn btn-sm btn-outline-danger">Löschen</button></form>{% endif %}
+                {% if current_user.is_authenticated and current_user.is_admin %}<form action="{{ url_for('delete_recipe', recipe_id=recipe.id) }}" method="POST" class="ml-2" onsubmit="return confirm('Rezept löschen?');"><button type="submit" class="btn btn-sm btn-outline-danger">Löschen</button></form>{% endif %}
             </div>
         </div>
+        <p class="text-muted mb-3"><strong>Kategorie:</strong> {{ recipe.category_rel.name if recipe.category_rel else 'Allgemein' }}</p>
+
         <div class="row text-center mb-4 p-3 bg-white border rounded mx-0 shadow-sm">
             <div class="col-3 border-right"><small class="text-muted d-block">Vorbereitung</small><strong>{{ recipe.prep_time }} Min</strong></div>
             <div class="col-3 border-right"><small class="text-muted d-block">Garzeit</small><strong>{{ recipe.cook_time }} Min</strong></div>
