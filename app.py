@@ -17,7 +17,10 @@ ADMIN_SECRET_KEY = "GEHEIM123"
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
-
+# --- DIESE BEIDEN ZEILEN HINZUFÜGEN ---
+login_manager.login_message = "Bitte melde dich an, um auf diese Seite zuzugreifen."
+login_manager.login_message_category = "info" 
+# --------------------------------------
 # --- MODELLE ---
 
 class Favorite(db.Model):
