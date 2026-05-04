@@ -134,20 +134,16 @@ def register():
     if request.method == 'POST':
         email, username, password = request.form.get('email'), request.form.get('username'), request.form.get('password')
         accept_terms = request.form.get('accept_terms')
-        
         if not accept_terms:
             flash('Bitte akzeptiere die AGB.', 'danger')
             return render_template('register.html')
-            
         password_pattern = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{10,}$'
         if not re.match(password_pattern, password):
             flash('Passwort zu schwach! Min. 10 Zeichen, Groß/Klein & Sonderzeichen nötig.', 'danger')
             return render_template('register.html')
-            
         if User.query.filter((User.email == email) | (User.username == username)).first():
             flash('Benutzer existiert bereits.', 'warning')
             return render_template('register.html')
-            
         hashed = generate_password_hash(password)
         is_admin = (request.form.get('admin_key') == ADMIN_SECRET_KEY)
         db.session.add(User(username=username, email=email, password=hashed, is_admin=is_admin))
@@ -167,7 +163,6 @@ def logout():
 def profile():
     return render_template('profile.html')
 
-# --- NEU: Die Funktion, mit der ein User sein eigenes Profil löschen kann ---
 @app.route("/user/delete", methods=['POST'])
 @login_required
 def delete_user():
@@ -186,7 +181,6 @@ def add_recipe():
         fname = secure_filename(file.filename) if file and file.filename != '' else 'default.jpg'
         if fname != 'default.jpg': 
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
-            
         recipe = Recipe(
             name=request.form.get('recipe_name'), instructions=request.form.get('instructions'),
             category_id=request.form.get('category_id'), image_file=fname, author=current_user,
@@ -197,15 +191,61 @@ def add_recipe():
         )
         db.session.add(recipe)
         db.session.flush()
-        
         names, amounts = request.form.getlist('ing_name[]'), request.form.getlist('ing_amount[]')
         for n, a in zip(names, amounts):
-            if n.strip(): 
-                db.session.add(Ingredient(name=n, amount=a, recipe_id=recipe.id))
+            if n.strip(): db.session.add(Ingredient(name=n, amount=a, recipe_id=recipe.id))
         db.session.commit()
         flash('Rezept erfolgreich angelegt!', 'success')
         return redirect(url_for('index'))
     return render_template('add_recipe.html')
+
+# --- NEU: Rezept bearbeiten ---
+@app.route("/recipe/<int:recipe_id>/edit", methods=['GET', 'POST'])
+@login_required
+def edit_recipe(recipe_id):
+    recipe = Recipe.query.get_or_404(recipe_id)
+    if recipe.author != current_user and not current_user.is_admin:
+        abort(403)
+    if request.method == 'POST':
+        recipe.name = request.form.get('recipe_name')
+        recipe.instructions = request.form.get('instructions')
+        recipe.category_id = request.form.get('category_id')
+        recipe.prep_time = int(request.form.get('prep_time') or 0)
+        recipe.cook_time = int(request.form.get('cook_time') or 0)
+        recipe.rest_time = int(request.form.get('rest_time') or 0)
+        recipe.servings = int(request.form.get('servings') or 1)
+        recipe.calories = int(request.form.get('calories') or 0)
+        recipe.protein = float(request.form.get('protein') or 0)
+        recipe.carbs = float(request.form.get('carbs') or 0)
+        recipe.fat = float(request.form.get('fat') or 0)
+        
+        file = request.files.get('recipe_image')
+        if file and file.filename != '':
+            fname = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
+            recipe.image_file = fname
+            
+        Ingredient.query.filter_by(recipe_id=recipe.id).delete()
+        names, amounts = request.form.getlist('ing_name[]'), request.form.getlist('ing_amount[]')
+        for n, a in zip(names, amounts):
+            if n.strip(): db.session.add(Ingredient(name=n, amount=a, recipe_id=recipe.id))
+            
+        db.session.commit()
+        flash('Rezept erfolgreich aktualisiert!', 'success')
+        return redirect(url_for('recipe_detail', recipe_id=recipe.id))
+    return render_template('add_recipe.html', recipe=recipe, title="Rezept bearbeiten")
+
+# --- NEU: Rezept löschen ---
+@app.route("/recipe/<int:recipe_id>/delete", methods=['POST'])
+@login_required
+def delete_recipe(recipe_id):
+    recipe = Recipe.query.get_or_404(recipe_id)
+    if recipe.author != current_user and not current_user.is_admin:
+        abort(403)
+    db.session.delete(recipe)
+    db.session.commit()
+    flash('Rezept wurde gelöscht.', 'info')
+    return redirect(url_for('index'))
 
 @app.route("/recipe/<int:recipe_id>", methods=['GET', 'POST'])
 def recipe_detail(recipe_id):
@@ -261,24 +301,21 @@ def admin_delete_user(user_id):
         db.session.commit()
         flash(f'Benutzer {u.username} gelöscht.', 'info')
     else:
-        flash('Admins können nicht gelöscht werden oder Benutzer existiert nicht.', 'danger')
+        flash('Admins können nicht gelöscht werden.', 'danger')
     return redirect(url_for('admin_users'))
 
 @app.route("/forgot-password", methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
-        flash('Simulation: Ein Link zum Zurücksetzen wurde gesendet.', 'info')
+        flash('Simulation: Link gesendet.', 'info')
         return redirect(url_for('login'))
     return render_template('forgot_password.html')
-
-# --- START ---
 
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
         if not Category.query.first():
             cat_list = sorted(["Vorspeise", "Hauptspeise", "Dessert", "Frühstück", "Snack", "Vegan", "Vegetarisch", "Backen", "Getränke", "Salate", "Suppen", "Pasta & Nudeln", "Fleisch", "Fisch", "Schnelle Küche", "Asiatisch", "Italienisch", "Mediterran", "Aufläufe", "Eintöpfe", "Saucen & Dips", "Fingerfood", "Low Carb", "Gesund & Fit", "Meeresfrüchte"])
-            for name in cat_list: 
-                db.session.add(Category(name=name))
+            for name in cat_list: db.session.add(Category(name=name))
             db.session.commit()
     app.run(debug=True)
