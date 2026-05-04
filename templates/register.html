@@ -1,34 +1,33 @@
 {% extends "base.html" %}
-
 {% block content %}
-<div class="card shadow-sm border-0 p-4 mx-auto" style="max-width: 500px;">
-    <h2 class="text-center mb-4 text-warning">Registrieren</h2>
-    <form method="POST">
-        <div class="form-group">
-            <label for="username">Benutzername</label>
-            <input type="text" id="username" name="username" class="form-control" required>
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow border-0 p-4">
+            <h2 class="text-center text-warning font-weight-bold mb-4">Konto erstellen</h2>
+            <form method="POST">
+                <div class="form-group"><label>Benutzername</label><input type="text" name="username" class="form-control" required></div>
+                <div class="form-group"><label>E-Mail-Adresse</label><input type="email" name="email" class="form-control" required></div>
+                
+                <div class="form-group">
+                    <label>Passwort</label>
+                    <input type="password" name="password" class="form-control" required>
+                    <small class="text-muted">Min. 10 Zeichen, Groß-/Kleinschreibung & Sonderzeichen nötig.</small>
+                </div>
+                
+                <div class="form-group"><label>Admin-Key (optional)</label><input type="password" name="admin_key" class="form-control"></div>
+                
+                <div class="form-group form-check">
+                    <input type="checkbox" class="form-check-input" id="terms" name="accept_terms" required>
+                    <label class="form-check-label small text-muted" for="terms">
+                        Ich habe die <a href="#" class="text-warning">AGB</a> und die 
+                        <a href="#" class="text-warning">Datenschutzerklärung</a> gelesen und akzeptiere diese.
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn btn-warning btn-block text-white font-weight-bold mt-3">Registrieren</button>
+            </form>
+            <div class="text-center mt-3 small"><a href="{{ url_for('login') }}" class="text-muted">Schon dabei? Login</a></div>
         </div>
-        <div class="form-group">
-            <label for="email">Email Adresse</label>
-            <input type="email" id="email" name="email" class="form-control" required>
-        </div>
-        <div class="form-group">
-            <label for="password">Passwort</label>
-            <input type="password" id="password" name="password" class="form-control" 
-                   minlength="10"
-                   pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{10,}"
-                   title="Mindestens 10 Zeichen, ein Großbuchstabe, ein Kleinbuchstabe und ein Sonderzeichen."
-                   required>
-            <small class="form-text text-muted">
-                Regeln: Min. 10 Zeichen, Groß- & Kleinbuchstaben, Sonderzeichen.
-            </small>
-        </div>
-        <div class="form-group">
-            <label for="admin_key">Admin-Key (optional)</label>
-            <input type="password" id="admin_key" name="admin_key" class="form-control" placeholder="Nur für Administratoren">
-        </div>
-        <button type="submit" class="btn btn-warning btn-block font-weight-bold shadow-sm">Konto erstellen</button>
-    </form>
-    <p class="text-center mt-3 small">Bereits ein Konto? <a href="{{ url_for('login') }}">Hier einloggen</a></p>
+    </div>
 </div>
 {% endblock %}

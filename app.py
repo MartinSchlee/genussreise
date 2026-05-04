@@ -8,7 +8,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'genussreise-final-master-2026'
+app.config['SECRET_KEY'] = 'genussreise-final-secure-2026'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///genussreise.db'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 
@@ -18,7 +18,7 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# Systemmeldungen auf Deutsch
+# Deutsche Systemmeldungen
 login_manager.login_message = "Bitte melde dich an, um auf diese Seite zuzugreifen."
 login_manager.login_message_category = "info"
 
@@ -125,19 +125,38 @@ def login():
         if user and check_password_hash(user.password, request.form.get('password')):
             login_user(user)
             return redirect(url_for('index'))
-        flash('Login fehlgeschlagen.', 'danger')
+        flash('Login fehlgeschlagen. Bitte E-Mail und Passwort prüfen.', 'danger')
     return render_template('login.html')
 
 @app.route("/register", methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        email, username = request.form.get('email'), request.form.get('username')
-        if User.query.filter((User.email == email) | (User.username == username)).first():
-            flash('Nutzer existiert bereits.', 'warning')
+        email = request.form.get('email')
+        username = request.form.get('username')
+        password = request.form.get('password')
+        accept_terms = request.form.get('accept_terms')
+
+        # 1. Check: AGB akzeptiert?
+        if not accept_terms:
+            flash('Du musst den AGB und Datenschutzbestimmungen zustimmen.', 'danger')
             return render_template('register.html')
-        hashed = generate_password_hash(request.form.get('password'))
-        db.session.add(User(username=username, email=email, password=hashed, is_admin=(request.form.get('admin_key') == ADMIN_SECRET_KEY)))
+
+        # 2. Check: Passwortregel (Regex)
+        password_pattern = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{10,}$'
+        if not re.match(password_pattern, password):
+            flash('Passwort zu schwach! Min. 10 Zeichen, Groß-/Kleinschreibung & Sonderzeichen nötig.', 'danger')
+            return render_template('register.html')
+
+        # 3. Check: Existiert User schon?
+        if User.query.filter((User.email == email) | (User.username == username)).first():
+            flash('Benutzername oder E-Mail existiert bereits.', 'warning')
+            return render_template('register.html')
+        
+        hashed = generate_password_hash(password)
+        is_admin = (request.form.get('admin_key') == ADMIN_SECRET_KEY)
+        db.session.add(User(username=username, email=email, password=hashed, is_admin=is_admin))
         db.session.commit()
+        flash('Konto erfolgreich erstellt! Logge dich jetzt ein.', 'success')
         return redirect(url_for('login'))
     return render_template('register.html')
 
@@ -158,12 +177,8 @@ def delete_user():
     logout_user()
     db.session.delete(u)
     db.session.commit()
+    flash('Konto gelöscht.', 'info')
     return redirect(url_for('index'))
-
-@app.route("/forgot-password", methods=['GET', 'POST'])
-def forgot_password():
-    if request.method == 'POST': flash('Simulation: Link gesendet.', 'info'); return redirect(url_for('login'))
-    return render_template('forgot_password.html')
 
 @app.route("/recipe/new", methods=['GET', 'POST'])
 @login_required
@@ -256,6 +271,11 @@ def favorites():
 def admin_users():
     if not current_user.is_admin: abort(403)
     return render_template('admin_users.html', users=User.query.all())
+
+@app.route("/forgot-password", methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST': flash('Simulation: Link zum Zurücksetzen gesendet.', 'info'); return redirect(url_for('login'))
+    return render_template('forgot_password.html')
 
 if __name__ == '__main__':
     with app.app_context():
