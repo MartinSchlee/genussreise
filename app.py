@@ -8,20 +8,22 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'genussreise-final-2026-safe'
+app.config['SECRET_KEY'] = 'genussreise-final-master-2026'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///genussreise.db'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 
+# Geheimer Schlüssel für die Admin-Registrierung
 ADMIN_SECRET_KEY = "GEHEIM123"
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
+# Deutsche Systemmeldungen
 login_manager.login_message = "Bitte melde dich an, um auf diese Seite zuzugreifen."
 login_manager.login_message_category = "info"
 
-# --- DATENBANK-MODELLE ---
+# --- MODELLE ---
 
 class Favorite(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -124,7 +126,7 @@ def login():
         if user and check_password_hash(user.password, request.form.get('password')):
             login_user(user)
             return redirect(url_for('index'))
-        flash('Login fehlgeschlagen.', 'danger')
+        flash('Login fehlgeschlagen. Bitte E-Mail und Passwort prüfen.', 'danger')
     return render_template('login.html')
 
 @app.route("/register", methods=['GET', 'POST'])
@@ -132,25 +134,32 @@ def register():
     if request.method == 'POST':
         email, username, password = request.form.get('email'), request.form.get('username'), request.form.get('password')
         accept_terms = request.form.get('accept_terms')
+        
         if not accept_terms:
-            flash('Bitte AGB akzeptieren.', 'danger')
+            flash('Bitte akzeptiere die AGB.', 'danger')
             return render_template('register.html')
+            
         password_pattern = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{10,}$'
         if not re.match(password_pattern, password):
-            flash('Passwort zu schwach!', 'danger')
+            flash('Passwort zu schwach! Min. 10 Zeichen, Groß/Klein & Sonderzeichen nötig.', 'danger')
             return render_template('register.html')
+            
         if User.query.filter((User.email == email) | (User.username == username)).first():
-            flash('Nutzer existiert bereits.', 'warning')
+            flash('Benutzer existiert bereits.', 'warning')
             return render_template('register.html')
+            
         hashed = generate_password_hash(password)
-        db.session.add(User(username=username, email=email, password=hashed, is_admin=(request.form.get('admin_key') == ADMIN_SECRET_KEY)))
+        is_admin = (request.form.get('admin_key') == ADMIN_SECRET_KEY)
+        db.session.add(User(username=username, email=email, password=hashed, is_admin=is_admin))
         db.session.commit()
+        flash('Konto erfolgreich erstellt! Du kannst dich jetzt einloggen.', 'success')
         return redirect(url_for('login'))
     return render_template('register.html')
 
 @app.route("/logout")
 def logout():
     logout_user()
+    flash('Du wurdest abgemeldet.', 'info')
     return redirect(url_for('index'))
 
 @app.route("/profile")
@@ -158,13 +167,26 @@ def logout():
 def profile():
     return render_template('profile.html')
 
+# --- NEU: Die Funktion, mit der ein User sein eigenes Profil löschen kann ---
+@app.route("/user/delete", methods=['POST'])
+@login_required
+def delete_user():
+    user = current_user
+    logout_user()
+    db.session.delete(user)
+    db.session.commit()
+    flash('Dein Konto wurde erfolgreich gelöscht.', 'info')
+    return redirect(url_for('index'))
+
 @app.route("/recipe/new", methods=['GET', 'POST'])
 @login_required
 def add_recipe():
     if request.method == 'POST':
         file = request.files.get('recipe_image')
         fname = secure_filename(file.filename) if file and file.filename != '' else 'default.jpg'
-        if fname != 'default.jpg': file.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
+        if fname != 'default.jpg': 
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
+            
         recipe = Recipe(
             name=request.form.get('recipe_name'), instructions=request.form.get('instructions'),
             category_id=request.form.get('category_id'), image_file=fname, author=current_user,
@@ -175,10 +197,13 @@ def add_recipe():
         )
         db.session.add(recipe)
         db.session.flush()
+        
         names, amounts = request.form.getlist('ing_name[]'), request.form.getlist('ing_amount[]')
         for n, a in zip(names, amounts):
-            if n.strip(): db.session.add(Ingredient(name=n, amount=a, recipe_id=recipe.id))
+            if n.strip(): 
+                db.session.add(Ingredient(name=n, amount=a, recipe_id=recipe.id))
         db.session.commit()
+        flash('Rezept erfolgreich angelegt!', 'success')
         return redirect(url_for('index'))
     return render_template('add_recipe.html')
 
@@ -189,8 +214,11 @@ def recipe_detail(recipe_id):
     if request.method == 'POST' and current_user.is_authenticated:
         rating = request.form.get('rating')
         db.session.add(Comment(content=request.form.get('content'), rating=int(rating) if rating else None, author=current_user, recipe=r))
-        if rating: r.rating_sum += int(rating); r.rating_count += 1
+        if rating: 
+            r.rating_sum += int(rating)
+            r.rating_count += 1
         db.session.commit()
+        flash('Kommentar hinzugefügt!', 'success')
         return redirect(url_for('recipe_detail', recipe_id=r.id))
     avg = round(r.rating_sum / r.rating_count, 1) if r.rating_count > 0 else 0
     return render_template('recipe_detail.html', recipe=r, avg_rating=avg, is_fav=is_fav)
@@ -199,18 +227,20 @@ def recipe_detail(recipe_id):
 @login_required
 def toggle_favorite(recipe_id):
     fav = Favorite.query.filter_by(user_id=current_user.id, recipe_id=recipe_id).first()
-    if fav: db.session.delete(fav)
-    else: db.session.add(Favorite(user_id=current_user.id, recipe_id=recipe_id))
+    if fav: 
+        db.session.delete(fav)
+        flash('Aus Favoriten entfernt.', 'info')
+    else: 
+        db.session.add(Favorite(user_id=current_user.id, recipe_id=recipe_id))
+        flash('Zu Favoriten hinzugefügt.', 'success')
     db.session.commit()
     return redirect(request.referrer or url_for('recipe_detail', recipe_id=recipe_id))
 
-# --- NEU: Die Liste der Favoriten anzeigen (Wurde in Screenshot 2026-05-04 140319.png vermisst) ---
 @app.route("/favorites")
 @login_required
 def favorites():
     user_favs = Favorite.query.filter_by(user_id=current_user.id).all()
     recipes = [f.recipe for f in user_favs]
-    # Falls Rezepte keine Durchschnittsbewertung haben, berechnen wir sie hier kurz für die Anzeige
     for r in recipes:
         r.avg_rating = round(r.rating_sum / r.rating_count, 1) if r.rating_count > 0 else 0
     return render_template('favorites.html', recipes=recipes)
@@ -227,14 +257,17 @@ def admin_delete_user(user_id):
     if not current_user.is_admin: abort(403)
     u = db.session.get(User, user_id)
     if u and not u.is_admin:
-        db.session.delete(u); db.session.commit()
-        flash(f'User {u.username} gelöscht.', 'info')
+        db.session.delete(u)
+        db.session.commit()
+        flash(f'Benutzer {u.username} gelöscht.', 'info')
+    else:
+        flash('Admins können nicht gelöscht werden oder Benutzer existiert nicht.', 'danger')
     return redirect(url_for('admin_users'))
 
 @app.route("/forgot-password", methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
-        flash('Simulation: E-Mail gesendet.', 'info')
+        flash('Simulation: Ein Link zum Zurücksetzen wurde gesendet.', 'info')
         return redirect(url_for('login'))
     return render_template('forgot_password.html')
 
@@ -245,6 +278,7 @@ if __name__ == '__main__':
         db.create_all()
         if not Category.query.first():
             cat_list = sorted(["Vorspeise", "Hauptspeise", "Dessert", "Frühstück", "Snack", "Vegan", "Vegetarisch", "Backen", "Getränke", "Salate", "Suppen", "Pasta & Nudeln", "Fleisch", "Fisch", "Schnelle Küche", "Asiatisch", "Italienisch", "Mediterran", "Aufläufe", "Eintöpfe", "Saucen & Dips", "Fingerfood", "Low Carb", "Gesund & Fit", "Meeresfrüchte"])
-            for name in cat_list: db.session.add(Category(name=name))
+            for name in cat_list: 
+                db.session.add(Category(name=name))
             db.session.commit()
     app.run(debug=True)
