@@ -1,5 +1,14 @@
-venv/
+# Python
 __pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Datenbank (lokal bleiben!)
 instance/
-static/uploads/*
-!static/uploads/default.jpg
+*.db
+
+# Betriebssystem-Müll
+.DS_Store
+Thumbs.db
