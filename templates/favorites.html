@@ -1,24 +1,51 @@
 {% extends "base.html" %}
+
 {% block content %}
-<h2 class="text-warning font-weight-bold mb-4 text-center">Meine Favoriten</h2>
-<div class="row">
-    {% if recipes %}
-        {% for recipe in recipes %}
-        <div class="col-md-4 mb-4">
-            <div class="card h-100 border-0 shadow-sm">
-                <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" class="card-img-top" style="height: 180px; object-fit: cover;">
-                <div class="card-body">
-                    <h5>{{ recipe.name }}</h5>
-                    <div class="d-flex justify-content-between">
-                        <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="btn btn-warning btn-sm text-white">Ansehen</a>
-                        <form action="{{ url_for('toggle_favorite', recipe_id=recipe.id) }}" method="POST">
-                            <button type="submit" class="btn btn-sm text-danger"><i class="fas fa-trash"></i></button>
-                        </form>
+<div class="container mt-4">
+    <h2 class="mb-4 font-weight-bold"><i class="fas fa-heart text-danger mr-2"></i> Meine Favoriten</h2>
+    
+    <div class="row">
+        {% if recipes %}
+            {% for recipe in recipes %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 border-0 shadow-sm recipe-card">
+                        <div style="height: 200px; overflow: hidden;" class="rounded-top">
+                            <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" 
+                                 class="card-img-top" 
+                                 alt="{{ recipe.name }}"
+                                 style="object-fit: cover; height: 100%; width: 100%;">
+                        </div>
+                        
+                        <div class="card-body">
+                            <h5 class="card-title font-weight-bold">{{ recipe.name }}</h5>
+                            <p class="card-text text-muted small">
+                                <i class="fas fa-user-edit mr-1"></i> Von {{ recipe.author.username }}
+                            </p>
+                            
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <span class="text-muted small">
+                                    <i class="fas fa-clock text-warning mr-1"></i> {{ recipe.total_time }} Min.
+                                </span>
+                                <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" 
+                                   class="btn btn-sm btn-outline-warning font-weight-bold px-3">Ansehen</a>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12 text-center py-5">
+                <i class="far fa-heart fa-3x text-muted mb-3"></i>
+                <h3>Du hast noch keine Favoriten.</h3>
+                <p class="text-muted">Klicke auf das Herz-Symbol bei einem Rezept, um es dir hier für später zu speichern!</p>
+                <a href="{{ url_for('index') }}" class="btn btn-warning mt-3 text-white">Rezepte entdecken</a>
             </div>
-        </div>
-        {% endfor %}
-    {% else %}<div class="col-12 text-center mt-5"><p class="text-muted">Noch keine Favoriten gespeichert.</p></div>{% endif %}
+        {% endif %}
+    </div>
 </div>
+
+<style>
+    .recipe-card { transition: transform 0.2s ease-in-out; }
+    .recipe-card:hover { transform: translateY(-5px); }
+</style>
 {% endblock %}

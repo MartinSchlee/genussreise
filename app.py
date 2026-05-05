@@ -12,7 +12,6 @@ app.config['SECRET_KEY'] = 'genussreise_geheimnis_2026'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///genussreise.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Bildupload Konfiguration
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -30,11 +29,18 @@ class User(db.Model, UserMixin):
     password = db.Column(db.String(60), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
     recipes = db.relationship('Recipe', backref='author', lazy=True)
+    favorites = db.relationship('Favorite', backref='user', lazy=True, cascade="all, delete-orphan")
 
 class Ingredient(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     amount = db.Column(db.String(50))
     name = db.Column(db.String(100), nullable=False)
+    recipe_id = db.Column(db.Integer, db.ForeignKey('recipe.id'), nullable=False)
+
+# NEU: Favoriten-Tabelle
+class Favorite(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     recipe_id = db.Column(db.Integer, db.ForeignKey('recipe.id'), nullable=False)
 
 class Recipe(db.Model):
@@ -45,13 +51,14 @@ class Recipe(db.Model):
     cook_time = db.Column(db.Integer, default=0)
     rest_time = db.Column(db.Integer, default=0)
     servings = db.Column(db.Integer, default=1)
-    calories = db.Column(db.Integer, default=0) # pro 100g
+    calories = db.Column(db.Integer, default=0) 
     protein = db.Column(db.Float, default=0.0)
     carbs = db.Column(db.Float, default=0.0)
     fat = db.Column(db.Float, default=0.0)
     image_file = db.Column(db.String(100), nullable=False, default='default.jpg')
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     ingredients = db.relationship('Ingredient', backref='recipe', lazy=True, cascade="all, delete-orphan")
+    favorites = db.relationship('Favorite', backref='recipe', lazy=True, cascade="all, delete-orphan")
 
     @property
     def total_time(self):
@@ -130,7 +137,30 @@ def new_recipe():
 @app.route("/recipe/<int:recipe_id>")
 def recipe_detail(recipe_id):
     recipe = Recipe.query.get_or_404(recipe_id)
-    return render_template('recipe_detail.html', recipe=recipe)
+    # Prüfen, ob das Rezept vom aktuellen Nutzer favorisiert wurde
+    is_favorited = False
+    if current_user.is_authenticated:
+        fav = Favorite.query.filter_by(user_id=current_user.id, recipe_id=recipe.id).first()
+        is_favorited = fav is not None
+    return render_template('recipe_detail.html', recipe=recipe, is_favorited=is_favorited)
+
+# NEU: Route zum Umschalten (Hinzufügen/Entfernen) eines Favoriten
+@app.route("/recipe/<int:recipe_id>/toggle_favorite", methods=['POST'])
+@login_required
+def toggle_favorite(recipe_id):
+    recipe = Recipe.query.get_or_404(recipe_id)
+    favorite = Favorite.query.filter_by(user_id=current_user.id, recipe_id=recipe.id).first()
+    
+    if favorite:
+        db.session.delete(favorite)
+        flash('Rezept aus Favoriten entfernt.', 'info')
+    else:
+        new_favorite = Favorite(user_id=current_user.id, recipe_id=recipe.id)
+        db.session.add(new_favorite)
+        flash('Rezept zu Favoriten hinzugefügt!', 'success')
+        
+    db.session.commit()
+    return redirect(request.referrer or url_for('recipe_detail', recipe_id=recipe.id))
 
 @app.route("/recipe/<int:recipe_id>/edit", methods=['GET', 'POST'])
 @login_required
@@ -189,13 +219,17 @@ def delete_recipe(recipe_id):
 @login_required
 def profile():
     recipes = Recipe.query.filter_by(author=current_user).all()
-    return render_template('profile.html', recipes=recipes, user=current_user)
+    all_users = User.query.all() if current_user.is_admin else []
+    return render_template('profile.html', recipes=recipes, user=current_user, users=all_users)
 
+# NEU: Die echte Favoriten-Route
 @app.route("/favorites")
 @login_required
 def favorites():
-    flash('Funktion folgt!', 'info')
-    return redirect(url_for('index'))
+    favs = Favorite.query.filter_by(user_id=current_user.id).all()
+    # Hole alle Rezepte aus den Favoriten des Nutzers
+    fav_recipes = [fav.recipe for fav in favs]
+    return render_template('favorites.html', recipes=fav_recipes)
 
 @app.route("/admin/users")
 @login_required
@@ -204,6 +238,17 @@ def admin_users():
         return redirect(url_for('index'))
     users = User.query.all()
     return render_template('admin_users.html', users=users)
+
+@app.route("/admin/delete_user/<int:user_id>", methods=['POST'])
+@login_required
+def admin_delete_user(user_id):
+    if not current_user.is_admin:
+        return redirect(url_for('index'))
+    user = User.query.get_or_404(user_id)
+    db.session.delete(user)
+    db.session.commit()
+    flash('Benutzer erfolgreich gelöscht.', 'info')
+    return redirect(request.referrer or url_for('admin_users'))
 
 @app.route("/register", methods=['GET', 'POST'])
 def register():

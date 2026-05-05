@@ -34,9 +34,28 @@
             </div>
         </div>
 
-        <!-- Rechte Seite: Titel und Zutaten -->
+        <!-- Rechte Seite: Titel, Favoriten-Button und Zutaten -->
         <div class="col-md-6">
-            <h1 class="display-4 font-weight-bold">{{ recipe.name }}</h1>
+            
+            <!-- NEU: Titel zusammen mit dem Favoriten-Herz-Button -->
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h1 class="display-4 font-weight-bold mb-0">{{ recipe.name }}</h1>
+                
+                {% if current_user.is_authenticated %}
+                <form action="{{ url_for('toggle_favorite', recipe_id=recipe.id) }}" method="POST">
+                    <button type="submit" class="btn btn-outline-danger border-0" style="font-size: 2rem; background: none;" title="Zu Favoriten hinzufügen/entfernen">
+                        {% if is_favorited %}
+                            <!-- Ausgefülltes Herz (Favorit) -->
+                            <i class="fas fa-heart text-danger"></i>
+                        {% else %}
+                            <!-- Leeres Herz (Kein Favorit) -->
+                            <i class="far fa-heart text-danger"></i>
+                        {% endif %}
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+            
             <p class="text-muted">Von {{ recipe.author.username }}</p>
 
             <h3 class="mt-4 mb-3">Zutaten</h3>
@@ -48,7 +67,7 @@
                 {% endfor %}
             </ul>
 
-            <!-- Geänderter Satz: Nährwerte jetzt pro 100 g -->
+            <!-- Nährwerte pro 100 g -->
             {% if recipe.calories > 0 %}
             <div class="alert alert-info">
                 <strong>Nährwerte pro 100 g:</strong> 
@@ -63,7 +82,7 @@
 
     <hr class="my-5">
 
-    <!-- Zubereitung -->
+    <!-- Unterer Bereich: Zubereitung -->
     <div class="row">
         <div class="col-12">
             <h3 class="mb-4">Zubereitung</h3>
