@@ -1,26 +1,38 @@
 {% extends "base.html" %}
+
 {% block content %}
-<h2 class="text-warning font-weight-bold mb-4">Benutzerverwaltung (Admin)</h2>
-<table class="table bg-white shadow-sm rounded">
-    <thead class="thead-light">
-        <tr><th>ID</th><th>Username</th><th>E-Mail</th><th>Admin</th><th>Aktion</th></tr>
-    </thead>
-    <tbody>
-        {% for user in users %}
-        <tr>
-            <td>{{ user.id }}</td>
-            <td>{{ user.username }}</td>
-            <td>{{ user.email }}</td>
-            <td>{{ 'Ja' if user.is_admin else 'Nein' }}</td>
-            <td>
-                {% if not user.is_admin %}
-                <form action="{{ url_for('admin_delete_user', user_id=user.id) }}" method="POST" onsubmit="return confirm('User wirklich löschen?');">
-                    <button type="submit" class="btn btn-sm btn-danger">Löschen</button>
-                </form>
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="container mt-4">
+    <h2>Benutzerverwaltung (Admin)</h2>
+    <hr>
+    <table class="table table-striped mt-3">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Admin?</th>
+                <th>Aktion</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr>
+                <td>{{ u.id }}</td>
+                <td>{{ u.username }}</td>
+                <td>{{ u.email }}</td>
+                <td>{{ 'Ja' if u.is_admin else 'Nein' }}</td>
+                <td>
+                    {% if u.id != current_user.id %}
+                    <form action="{{ url_for('admin_delete_user', user_id=u.id) }}" method="POST">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Benutzer wirklich löschen?')">Löschen</button>
+                    </form>
+                    {% else %}
+                    <span class="text-muted">Selbstschutz</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}
