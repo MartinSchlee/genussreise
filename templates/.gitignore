@@ -1,14 +1,7 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
 venv/
-.env
-
-# Datenbank (lokal bleiben!)
+__pycache__/
 instance/
-*.db
-
-# Betriebssystem-Müll
-.DS_Store
-Thumbs.db
+static/uploads/*
+!static/uploads/default.jpg
+.env
+*.pyc
