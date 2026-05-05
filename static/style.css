@@ -160,3 +160,33 @@ form {
     margin-left: auto;
     margin-right: auto;
 }
+
+/* Styling für die interaktiven Sterne */
+.star-rating {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+}
+
+.star-rating input {
+    display: none;
+}
+
+.star-rating label {
+    font-size: 2rem;
+    color: #ddd;
+    cursor: pointer;
+    transition: color 0.2s ease-in-out;
+    margin-right: 5px;
+}
+
+/* Hover-Effekt und gewählter Zustand */
+.star-rating label:hover,
+.star-rating label:hover ~ label,
+.star-rating input:checked ~ label {
+    color: #f1c40f; /* Das typische Gold-Gelb */
+}
+
+.star-rating label:hover:before {
+    content: '★';
+}
