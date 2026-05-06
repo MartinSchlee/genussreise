@@ -19,6 +19,8 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+login_manager.login_message = "Bitte melde dich an, um diese Seite zu sehen."
+login_manager.login_message_category = "info"
 
 # --- Datenbank Modelle ---
 
