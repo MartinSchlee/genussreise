@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 
+{% block title %}Startseite{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
-    <!-- Kompaktes Willkommens-Banner (Text pur, ohne klobigen Rahmen) -->
     <div class="text-center py-4 mb-4">
         <h1 class="display-4 font-weight-bold" style="color: #212529;">Willkommen auf deiner Genussreise</h1>
         <p class="lead text-muted">Entdecke neue Rezepte oder teile deine eigenen Kreationen mit der Welt.</p>
@@ -11,7 +12,6 @@
         </a>
     </div>
 
-    <!-- Überschrift für die Rezepte -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="font-weight-bold">Aktuelle Rezepte</h2>
         {% if current_user.is_authenticated %}
@@ -19,7 +19,6 @@
         {% endif %}
     </div>
 
-    <!-- Rezept-Raster -->
     <div class="row">
         {% for recipe in recipes.items %}
         <div class="col-md-6 col-lg-4 mb-4">
@@ -27,7 +26,7 @@
                 <div style="height: 200px; overflow: hidden;" class="rounded-top">
                     <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" 
                          class="card-img-top" 
-                         alt="{{ recipe.name }}"
+                         alt="Rezept für {{ recipe.name }} - einfach nachkochen"
                          style="object-fit: cover; height: 100%; width: 100%;">
                 </div>
                 <div class="card-body">
@@ -36,15 +35,15 @@
                         <i class="fas fa-clock text-warning mr-1"></i> {{ recipe.total_time }} Min. | 
                         <i class="fas fa-user mr-1"></i> {{ recipe.author.username }}
                     </p>
-                    <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="btn btn-sm btn-warning text-white btn-block font-weight-bold">Rezept ansehen</a>
+                    <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="btn btn-sm btn-warning text-white btn-block font-weight-bold">Ansehen</a>
                 </div>
             </div>
         </div>
         {% endfor %}
     </div>
 
-    <!-- Paginierung (Seitenwechsel) -->
-    <nav aria-label="Page navigation" class="mt-4">
+    <!-- Paginierung -->
+    <nav class="mt-4">
         <ul class="pagination justify-content-center">
             {% for page_num in recipes.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
                 {% if page_num %}
@@ -61,12 +60,7 @@
 </div>
 
 <style>
-    .recipe-card {
-        transition: transform 0.2s ease-in-out;
-        border-radius: 15px;
-    }
-    .recipe-card:hover {
-        transform: translateY(-5px);
-    }
+    .recipe-card { transition: transform 0.2s ease-in-out; border-radius: 15px; }
+    .recipe-card:hover { transform: translateY(-5px); }
 </style>
 {% endblock %}

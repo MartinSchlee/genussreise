@@ -19,7 +19,9 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
-login_manager.login_message = "Bitte melde dich an, um diese Seite zu sehen."
+
+# Deutsche Fehlermeldung für geschützte Seiten
+login_manager.login_message = "Bitte melde dich an, um auf diese Seite zuzugreifen."
 login_manager.login_message_category = "info"
 
 # --- Datenbank Modelle ---
@@ -39,7 +41,6 @@ class Ingredient(db.Model):
     name = db.Column(db.String(100), nullable=False)
     recipe_id = db.Column(db.Integer, db.ForeignKey('recipe.id'), nullable=False)
 
-# NEU: Favoriten-Tabelle
 class Favorite(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -139,20 +140,17 @@ def new_recipe():
 @app.route("/recipe/<int:recipe_id>")
 def recipe_detail(recipe_id):
     recipe = Recipe.query.get_or_404(recipe_id)
-    # Prüfen, ob das Rezept vom aktuellen Nutzer favorisiert wurde
     is_favorited = False
     if current_user.is_authenticated:
         fav = Favorite.query.filter_by(user_id=current_user.id, recipe_id=recipe.id).first()
         is_favorited = fav is not None
     return render_template('recipe_detail.html', recipe=recipe, is_favorited=is_favorited)
 
-# NEU: Route zum Umschalten (Hinzufügen/Entfernen) eines Favoriten
 @app.route("/recipe/<int:recipe_id>/toggle_favorite", methods=['POST'])
 @login_required
 def toggle_favorite(recipe_id):
     recipe = Recipe.query.get_or_404(recipe_id)
     favorite = Favorite.query.filter_by(user_id=current_user.id, recipe_id=recipe.id).first()
-    
     if favorite:
         db.session.delete(favorite)
         flash('Rezept aus Favoriten entfernt.', 'info')
@@ -160,7 +158,6 @@ def toggle_favorite(recipe_id):
         new_favorite = Favorite(user_id=current_user.id, recipe_id=recipe.id)
         db.session.add(new_favorite)
         flash('Rezept zu Favoriten hinzugefügt!', 'success')
-        
     db.session.commit()
     return redirect(request.referrer or url_for('recipe_detail', recipe_id=recipe.id))
 
@@ -199,7 +196,6 @@ def edit_recipe(recipe_id):
             if ing_name.strip():
                 new_ing = Ingredient(amount=amount, name=ing_name, recipe=recipe)
                 db.session.add(new_ing)
-        
         db.session.commit()
         flash('Rezept aktualisiert!', 'success')
         return redirect(url_for('recipe_detail', recipe_id=recipe.id))
@@ -224,12 +220,10 @@ def profile():
     all_users = User.query.all() if current_user.is_admin else []
     return render_template('profile.html', recipes=recipes, user=current_user, users=all_users)
 
-# NEU: Die echte Favoriten-Route
 @app.route("/favorites")
 @login_required
 def favorites():
     favs = Favorite.query.filter_by(user_id=current_user.id).all()
-    # Hole alle Rezepte aus den Favoriten des Nutzers
     fav_recipes = [fav.recipe for fav in favs]
     return render_template('favorites.html', recipes=fav_recipes)
 
@@ -284,9 +278,10 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
+# --- DIESE ROUTE HAT GEFEHLT ---
 @app.route("/forgot_password")
 def forgot_password():
-    flash('Funktion folgt!', 'info')
+    flash('Funktion folgt bald!', 'info')
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
