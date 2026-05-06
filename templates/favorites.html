@@ -1,29 +1,25 @@
 {% extends "base.html" %}
-
 {% block title %}Meine Favoriten{% endblock %}
-
 {% block content %}
-<div class="container mt-4">
-    <h2 class="mb-4 font-weight-bold text-danger"><i class="fas fa-heart mr-2"></i>Meine Favoriten</h2>
-    
-    <div class="row">
-        {% if recipes %}
-            {% for recipe in recipes %}
-                <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card h-100 border-0 shadow-sm">
-                        <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" class="card-img-top" style="object-fit: cover; height: 200px;">
-                        <div class="card-body">
-                            <h5 class="card-title">{{ recipe.name }}</h5>
-                            <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="btn btn-sm btn-warning text-white">Ansehen</a>
-                        </div>
-                    </div>
+<h2 class="mb-4 font-weight-bold"><i class="fas fa-heart text-danger mr-2"></i>Deine Merkliste</h2>
+<div class="row">
+    {% if recipes %}
+        {% for recipe in recipes %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm" style="border-radius: 15px; overflow: hidden;">
+                <img src="{{ url_for('static', filename='uploads/' + recipe.image_file) }}" class="card-img-top" style="height: 180px; object-fit: cover;">
+                <div class="card-body">
+                    <h5 class="card-title font-weight-bold">{{ recipe.name }}</h5>
+                    <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="btn btn-warning btn-sm btn-block text-white font-weight-bold" style="background: var(--gold); border: none;">Ansehen</a>
                 </div>
-            {% endfor %}
-        {% else %}
-            <div class="col-12 text-center py-5">
-                <p class="text-muted">Noch keine Favoriten gespeichert.</p>
             </div>
-        {% endif %}
-    </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12 text-center py-5">
+            <p class="text-muted">Deine Merkliste ist noch leer.</p>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-warning">Rezepte entdecken</a>
+        </div>
+    {% endif %}
 </div>
 {% endblock %}

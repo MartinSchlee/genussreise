@@ -1,16 +1,42 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="card mx-auto shadow-sm border-0" style="max-width: 500px;">
-    <div class="card-header bg-warning text-white text-center h4 py-3">Mein Konto</div>
-    <div class="card-body">
-        <p><strong>Benutzer:</strong> {{ current_user.username }}</p>
-        <p><strong>Email:</strong> {{ current_user.email }}</p>
-        <hr>
-        <h5 class="text-danger">Gefahrenzone</h5>
-        <p class="small text-muted">Löschung entfernt auch alle deine Rezepte und Kommentare.</p>
-        <form action="{{ url_for('admin_delete_user', user_id=current_user.id) }}" method="POST">
-            <button type="submit" class="btn btn-outline-danger btn-block" onclick="return confirm('Wirklich löschen?')">Konto unwiderruflich löschen</button>
-        </form>
+<div class="row">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm p-4 text-center">
+            <i class="fas fa-user-circle fa-5x text-muted mb-3"></i>
+            <h4>{{ user.username }}</h4>
+            <p class="text-muted">{{ user.email }}</p>
+            
+            {% if user.is_admin %}
+                <div class="alert alert-warning py-2 mt-3">
+                    <strong>Admin-Modus</strong><br>
+                    <a href="{{ url_for('admin_users') }}" class="btn btn-sm btn-warning btn-block text-white mt-2">Benutzer verwalten</a>
+                </div>
+            {% endif %}
+
+            <hr>
+            <form action="{{ url_for('delete_account') }}" method="POST" onsubmit="return confirm('Möchtest du dein Konto wirklich löschen?')">
+                <button type="submit" class="btn btn-sm btn-link text-danger">Konto löschen</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="font-weight-bold">Meine Rezepte</h3>
+            <a href="{{ url_for('new_recipe') }}" class="btn btn-warning btn-sm text-white" style="background:var(--gold); border:none;">Neues Rezept</a>
+        </div>
+        <div class="row">
+            {% for recipe in recipes %}
+            <div class="col-sm-6 mb-3">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h6>{{ recipe.name }}</h6>
+                        <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="btn btn-sm btn-outline-warning">Ansehen</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
     </div>
 </div>
 {% endblock %}
