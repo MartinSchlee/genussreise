@@ -16,7 +16,7 @@
             {% endif %}
         </div>
         
-        <!-- REIHE 1: ZEITEN & PORTIONEN -->
+        <!-- REIHE 1: ZEITEN -->
         <div class="d-flex bg-light p-3 rounded mb-2 text-center shadow-sm border">
             <div class="flex-fill border-right"><strong>{{ recipe.prep_time }} Min.</strong><br><small>Zubereitung</small></div>
             <div class="flex-fill border-right"><strong>{{ recipe.cook_time }} Min.</strong><br><small>Kochen</small></div>
@@ -24,21 +24,15 @@
             <div class="flex-fill"><strong>{{ recipe.servings }}</strong><br><small>Portionen</small></div>
         </div>
 
-        <!-- REIHE 2: NÄHRWERTE (Deine gewünschte Reihe) -->
+        <!-- REIHE 2: NÄHRWERTE -->
         <div class="d-flex bg-dark text-white p-2 rounded mb-4 text-center">
             <div class="flex-fill border-right border-secondary">
                 <small>kJ (kcal)</small><br>
                 <strong>{{ (recipe.calories * 4.184)|int }} ({{ recipe.calories }})</strong>
             </div>
-            <div class="flex-fill border-right border-secondary">
-                <small>Eiweiß</small><br><strong>{{ recipe.protein }}g</strong>
-            </div>
-            <div class="flex-fill border-right border-secondary">
-                <small>Kohlenh.</small><br><strong>{{ recipe.carbs }}g</strong>
-            </div>
-            <div class="flex-fill">
-                <small>Fett</small><br><strong>{{ recipe.fat }}g</strong>
-            </div>
+            <div class="flex-fill border-right border-secondary"><small>Eiweiß</small><br><strong>{{ recipe.protein }}g</strong></div>
+            <div class="flex-fill border-right border-secondary"><small>Kohlenh.</small><br><strong>{{ recipe.carbs }}g</strong></div>
+            <div class="flex-fill"><small>Fett</small><br><strong>{{ recipe.fat }}g</strong></div>
         </div>
 
         <div class="no-print mb-4">
@@ -46,7 +40,7 @@
             {% if current_user == recipe.author or current_user.is_admin %}
                 <a href="{{ url_for('edit_recipe', recipe_id=recipe.id) }}" class="btn btn-outline-warning btn-sm mr-2"><i class="fas fa-edit"></i> Bearbeiten</a>
                 <form action="{{ url_for('delete_recipe', recipe_id=recipe.id) }}" method="POST" style="display:inline;">
-                    <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Rezept wirklich löschen?')">Löschen</button>
+                    <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Löschen?')">Löschen</button>
                 </form>
             {% endif %}
         </div>
@@ -68,23 +62,20 @@
         <p style="white-space: pre-wrap; line-height: 1.8;">{{ recipe.instructions }}</p>
     </div>
     <div class="col-md-5">
-        <h4>Bewertungen</h4>
+        <h4>Bewertungen & Kommentare</h4>
         {% if current_user.is_authenticated %}
             <form action="{{ url_for('add_comment', recipe_id=recipe.id) }}" method="POST" class="mb-4 bg-white p-3 rounded shadow-sm border">
                 <select name="rating" class="form-control mb-2">
                     <option value="5">⭐⭐⭐⭐⭐</option><option value="4">⭐⭐⭐⭐</option><option value="3">⭐⭐⭐</option><option value="2">⭐⭐</option><option value="1">⭐</option>
                 </select>
                 <textarea name="comment_text" class="form-control mb-2" placeholder="Kommentar..." required></textarea>
-                <button type="submit" class="btn btn-warning text-white btn-block font-weight-bold" style="background:#e2b007; border:none;">Bewerten</button>
+                <button type="submit" class="btn btn-warning text-white btn-block font-weight-bold" style="background:#e2b007; border:none;">Senden</button>
             </form>
         {% endif %}
         {% for c in recipe.comments|sort(attribute='timestamp', reverse=True) %}
-            <div class="p-2 border-bottom"><strong>{{ c.user.username }}</strong> <span class="text-warning">{% for i in range(c.rating) %}⭐{% endfor %}</span><p class="mb-0 small">{{ c.text }}</p></div>
+            <div class="p-2 border-bottom"><strong>{{ c.user.username }}</strong> <span class="text-warning ml-2">{% for i in range(c.rating) %}⭐{% endfor %}</span><p class="mb-0 small">{{ c.text }}</p></div>
         {% endfor %}
     </div>
 </div>
-
-<style>
-    @media print { .no-print, nav, form, .btn { display: none !important; } body { background: white; } }
-</style>
+<style>@media print { .no-print, nav, form, .btn { display: none !important; } body { background: white; } }</style>
 {% endblock %}

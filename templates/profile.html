@@ -9,7 +9,7 @@
             
             {% if user.is_admin %}
                 <div class="alert alert-warning py-2 mt-3">
-                    <strong>Admin-Modus</strong><br>
+                    <strong>Admin-Bereich</strong><br>
                     <a href="{{ url_for('admin_users') }}" class="btn btn-sm btn-warning btn-block text-white mt-2">Benutzer verwalten</a>
                 </div>
             {% endif %}
@@ -23,7 +23,7 @@
     <div class="col-md-8">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h3 class="font-weight-bold">Meine Rezepte</h3>
-            <a href="{{ url_for('new_recipe') }}" class="btn btn-warning btn-sm text-white" style="background:var(--gold); border:none;">Neues Rezept</a>
+            <a href="{{ url_for('new_recipe') }}" class="btn btn-warning btn-sm text-white" style="background:#e2b007; border:none;">Neues Rezept</a>
         </div>
         <div class="row">
             {% for recipe in recipes %}
@@ -31,7 +31,10 @@
                 <div class="card border-0 shadow-sm">
                     <div class="card-body">
                         <h6>{{ recipe.name }}</h6>
-                        <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="btn btn-sm btn-outline-warning">Ansehen</a>
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="btn btn-xs btn-outline-warning">Ansehen</a>
+                            <a href="{{ url_for('edit_recipe', recipe_id=recipe.id) }}" class="btn btn-xs btn-outline-secondary">Bearbeiten</a>
+                        </div>
                     </div>
                 </div>
             </div>

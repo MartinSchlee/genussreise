@@ -1,16 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container mb-5">
-    <h2 class="font-weight-bold mb-4 text-dark">Rezept bearbeiten: {{ recipe.name }}</h2>
+    <h2 class="font-weight-bold mb-4">Rezept bearbeiten: {{ recipe.name }}</h2>
     <form method="POST" class="bg-white p-4 rounded shadow-sm border">
         
         <div class="row">
-            <div class="col-md-8">
-                <div class="form-group"><label class="font-weight-bold">Rezeptname</label><input type="text" name="name" class="form-control form-control-lg" value="{{ recipe.name }}" required></div>
-            </div>
+            <div class="col-md-8"><div class="form-group"><label class="font-weight-bold">Rezeptname</label><input type="text" name="name" class="form-control form-control-lg" value="{{ recipe.name }}" required></div></div>
             <div class="col-md-4">
-                <div class="form-group">
-                    <label class="font-weight-bold">Kategorie</label>
+                <div class="form-group"><label class="font-weight-bold">Kategorie</label>
                     <select name="category" class="form-control form-control-lg">
                         {% for cat in all_categories %}<option value="{{ cat.name }}" {% if cat.name == recipe.category %}selected{% endif %}>{{ cat.name }}</option>{% endfor %}
                     </select>
@@ -18,39 +15,37 @@
             </div>
         </div>
 
-        <div class="row bg-light py-3 rounded mb-4 mx-0 border">
-            <div class="col-md-2 col-6"><label class="small font-weight-bold">Portionen</label><input type="number" name="servings" class="form-control" value="{{ recipe.servings }}"></div>
-            <div class="col-md-2 col-6"><label class="small font-weight-bold">Zubereitung</label><input type="number" name="prep_time" class="form-control" value="{{ recipe.prep_time }}"></div>
-            <div class="col-md-2 col-6"><label class="small font-weight-bold">Kochzeit</label><input type="number" name="cook_time" class="form-control" value="{{ recipe.cook_time }}"></div>
-            <div class="col-md-2 col-6"><label class="small font-weight-bold">Ruhezeit</label><input type="number" name="rest_time" class="form-control" value="{{ recipe.rest_time }}"></div>
-            <div class="col-md-4 col-12"><label class="small font-weight-bold">Kalorien</label><input type="number" name="calories" class="form-control" value="{{ recipe.calories }}"></div>
+        <div class="row bg-light py-3 rounded mb-2 mx-0 border">
+            <div class="col-md-3 col-6"><label class="small font-weight-bold">Portionen</label><input type="number" name="servings" class="form-control" value="{{ recipe.servings }}"></div>
+            <div class="col-md-3 col-6"><label class="small font-weight-bold">Zubereitung</label><input type="number" name="prep_time" class="form-control" value="{{ recipe.prep_time }}"></div>
+            <div class="col-md-3 col-6"><label class="small font-weight-bold">Kochzeit</label><input type="number" name="cook_time" class="form-control" value="{{ recipe.cook_time }}"></div>
+            <div class="col-md-3 col-6"><label class="small font-weight-bold">Ruhezeit</label><input type="number" name="rest_time" class="form-control" value="{{ recipe.rest_time }}"></div>
+        </div>
+
+        <div class="row bg-dark text-white py-3 rounded mb-4 mx-0">
+            <div class="col-md-3 col-6"><label class="small font-weight-bold">Kalorien (kcal)</label><input type="number" name="calories" class="form-control" value="{{ recipe.calories }}"></div>
+            <div class="col-md-3 col-6"><label class="small font-weight-bold">Eiweiß (g)</label><input type="number" step="0.1" name="protein" class="form-control" value="{{ recipe.protein }}"></div>
+            <div class="col-md-3 col-6"><label class="small font-weight-bold">Kohlenh.</label><input type="number" step="0.1" name="carbs" class="form-control" value="{{ recipe.carbs }}"></div>
+            <div class="col-md-3 col-6"><label class="small font-weight-bold">Fett (g)</label><input type="number" step="0.1" name="fat" class="form-control" value="{{ recipe.fat }}"></div>
         </div>
 
         <div class="form-group">
             <label class="font-weight-bold">Zutaten</label>
             <div id="edit-ingredient-container">
-                {% for ing in recipe.ingredients %}
-                <div class="row mb-2">
-                    <div class="col-4"><input type="text" name="ing_amount[]" class="form-control" value="{{ ing.amount }}"></div>
-                    <div class="col-8"><input type="text" name="ing_name[]" class="form-control" value="{{ ing.name }}"></div>
-                </div>
-                {% endfor %}
+                {% for ing in recipe.ingredients %}<div class="row mb-2"><div class="col-4"><input type="text" name="ing_amount[]" class="form-control" value="{{ ing.amount }}"></div><div class="col-8"><input type="text" name="ing_name[]" class="form-control" value="{{ ing.name }}"></div></div>{% endfor %}
             </div>
-            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addEditIngredient()">+ Zutat hinzufügen</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addEditIngredient()">+ Zutat</button>
         </div>
 
-        <div class="form-group mt-4"><label class="font-weight-bold">Zubereitungsschritte</label><textarea name="instructions" class="form-control" rows="8" required>{{ recipe.instructions }}</textarea></div>
-        
-        <hr>
-        <button type="submit" class="btn btn-success btn-lg btn-block font-weight-bold shadow-sm">Änderungen speichern</button>
+        <div class="form-group mt-4"><label class="font-weight-bold">Zubereitung</label><textarea name="instructions" class="form-control" rows="8" required>{{ recipe.instructions }}</textarea></div>
+        <hr><button type="submit" class="btn btn-success btn-lg btn-block font-weight-bold shadow-sm">Speichern</button>
     </form>
 </div>
 <script>
 function addEditIngredient() {
     const container = document.getElementById('edit-ingredient-container');
-    const div = document.createElement('div');
-    div.className = 'row mb-2';
-    div.innerHTML = `<div class="col-4"><input type="text" name="ing_amount[]" class="form-control" placeholder="Menge"></div><div class="col-8"><input type="text" name="ing_name[]" class="form-control" placeholder="Zutat"></div>`;
+    const div = document.createElement('div'); div.className = 'row mb-2';
+    div.innerHTML = `<div class="col-4"><input type="text" name="ing_amount[]" class="form-control"></div><div class="col-8"><input type="text" name="ing_name[]" class="form-control"></div>`;
     container.appendChild(div);
 }
 </script>

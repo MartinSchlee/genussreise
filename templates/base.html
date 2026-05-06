@@ -9,13 +9,8 @@
         :root { --gold: #e2b007; }
         .navbar-dark .navbar-brand i { color: var(--gold); }
         .dropdown-menu { border-radius: 12px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-height: 400px; overflow-y: auto; }
-        
-        .search-input { 
-            border-radius: 20px 0 0 20px; background: #2c3034; border: none; color: white !important; transition: all 0.3s; 
-        }
-        .search-input:focus { 
-            background: white !important; color: #212529 !important; box-shadow: none; 
-        }
+        .search-input { border-radius: 20px 0 0 20px; background: #2c3034; border: none; color: white !important; transition: all 0.3s; }
+        .search-input:focus { background: white !important; color: #212529 !important; box-shadow: none; }
         .search-btn { border-radius: 0 20px 20px 0; background: var(--gold); border: none; color: white; }
         .nav-btn-gold { background: var(--gold); color: white !important; border-radius: 20px; font-weight: bold; padding: 5px 15px; }
     </style>
@@ -39,6 +34,7 @@
                         </div>
                     </li>
                     {% if current_user.is_authenticated %}
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('favorites') }}">Favoriten</a></li>
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('profile') }}">Profil</a></li>
                         <li class="nav-item"><a class="btn btn-outline-light btn-sm ml-2" href="{{ url_for('logout') }}">Abmelden</a></li>
                     {% else %}
@@ -49,7 +45,12 @@
             </div>
         </div>
     </nav>
-    <div class="container mt-4">{% block content %}{% endblock %}</div>
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}{% for cat, msg in messages %}<div class="alert alert-{{ cat }}">{{ msg }}</div>{% endfor %}{% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>

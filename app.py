@@ -7,7 +7,7 @@ from flask_login import LoginManager, UserMixin, login_user, current_user, logou
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'genussreise_2026_ultimate'
+app.config['SECRET_KEY'] = 'genussreise_final_fixed_2026'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///genussreise.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -174,7 +174,16 @@ def delete_recipe(recipe_id):
     if recipe.author == current_user or current_user.is_admin:
         db.session.delete(recipe)
         db.session.commit()
-        flash('Rezept gelöscht.', 'success')
+    return redirect(url_for('index'))
+
+@app.route("/delete_account", methods=['POST'])
+@login_required
+def delete_account():
+    user = User.query.get(current_user.id)
+    logout_user()
+    db.session.delete(user)
+    db.session.commit()
+    flash('Dein Konto wurde gelöscht.', 'info')
     return redirect(url_for('index'))
 
 @app.route("/recipe/<int:recipe_id>/comment", methods=['POST'])
@@ -196,27 +205,21 @@ def toggle_favorite(recipe_id):
     db.session.commit()
     return redirect(request.referrer)
 
+@app.route("/favorites")
+@login_required
+def favorites():
+    favs = Favorite.query.filter_by(user_id=current_user.id).all()
+    return render_template('favorites.html', recipes=[f.recipe for f in favs])
+
 @app.route("/profile")
 @login_required
 def profile():
     return render_template('profile.html', user=current_user, recipes=current_user.recipes)
 
-@app.route("/delete_account", methods=['POST'])
-@login_required
-def delete_account():
-    user = User.query.get(current_user.id)
-    logout_user()
-    db.session.delete(user)
-    db.session.commit()
-    return redirect(url_for('index'))
-
-# --- Admin Routen (LÖSUNG FÜR BuildError admin_users) ---
 @app.route("/admin/users")
 @login_required
 def admin_users():
-    if not current_user.is_admin:
-        flash("Zugriff verweigert!", "danger")
-        return redirect(url_for('index'))
+    if not current_user.is_admin: return redirect(url_for('index'))
     return render_template('admin_users.html', users=User.query.all())
 
 @app.route("/admin/delete_user/<int:user_id>", methods=['POST'])
@@ -227,10 +230,8 @@ def admin_delete_user(user_id):
     if user != current_user:
         db.session.delete(user)
         db.session.commit()
-        flash('Benutzer gelöscht.', 'info')
     return redirect(url_for('admin_users'))
 
-# --- Auth ---
 @app.route("/login", methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -238,15 +239,13 @@ def login():
         if user and check_password_hash(user.password, request.form['password']):
             login_user(user)
             return redirect(url_for('index'))
-        flash('Login fehlgeschlagen.', 'danger')
     return render_template('login.html')
 
 @app.route("/register", methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         hashed_pw = generate_password_hash(request.form['password'], method='pbkdf2:sha256')
-        is_first = (User.query.count() == 0)
-        user = User(username=request.form['username'], email=request.form['email'], password=hashed_pw, is_admin=is_first)
+        user = User(username=request.form['username'], email=request.form['email'], password=hashed_pw, is_admin=(User.query.count() == 0))
         db.session.add(user)
         db.session.commit()
         return redirect(url_for('login'))
